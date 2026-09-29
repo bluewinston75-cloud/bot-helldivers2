@@ -1,0 +1,12 @@
+{
+  "name": "hd2-discord-bot",
+  "version": "1.0.0",
+  "description": "Bot di Helldivers 2 H24 su internet",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  }
+}
