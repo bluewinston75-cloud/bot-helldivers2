@@ -75,7 +75,7 @@ function controllaSpostamentoDSS() {
                     }
                 }
 
-                if (primoAvvioDSS || nomePianeta !== ultimoPianetaDSS) {
+                if (primoAvvioDSS || nomePianeta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
                     primoAvvioDSS = false;
                     ultimoPianetaDSS = nomePianeta;
 
