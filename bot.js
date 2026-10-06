@@ -6,11 +6,14 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 const utentiInPartita = new Set();
 const timerUscitaUtenti = new Map();
 let ultimoPianetaDSS = ""; 
+let idUltimoOrdineGlobale = 0;
 let primoAvvioDSS = true;
+let primoAvvioOrdine = true;
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID; 
 const DSS_CHANNEL_ID = process.env.DSS_CHANNEL_ID;       
+const ORDINI_CHANNEL_ID = process.env.ORDINI_CHANNEL_ID; 
 const OWNER_USERNAME = process.env.OWNER_USERNAME;       
 
 const commands = [
@@ -30,14 +33,17 @@ client.on("ready", async () => {
     }
 
     controllaSpostamentoDSS();
+    controllaOrdineGlobale();
+    
     setInterval(controllaSpostamentoDSS, 60000);
+    setInterval(controllaOrdineGlobale, 300000); 
 });
 
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.user.username !== OWNER_USERNAME) {
-        return interaction.reply({ content: "❌ Questo comando rapido è reserved esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
+        return interaction.reply({ content: "❌ Questo comando rapido è riservato esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
     }
 
     if (interaction.commandName === "inizia") {
@@ -50,6 +56,69 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.reply({ content: "🛑 Rientro alla base registrato nel server!", ephemeral: true });
     }
 });
+
+function controllaOrdineGlobale() {
+    const opz = { 
+        hostname: 'api.helldivers2.dev', 
+        path: '/v1/v2/assignments', 
+        method: 'GET', 
+        headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
+    };
+
+    https.get(opz, (res) => {
+        let data = "";
+        res.on("data", (chunk) => data += chunk);
+        res.on("end", () => {
+            try {
+                if (res.statusCode !== 200) return;
+                const ordini = JSON.parse(data);
+                if (!ordini || ordini.length === 0) return;
+
+                const ordineAttuale = ordini[0];
+                const idOrdine = ordineAttuale.id || ordineAttuale.id32;
+
+                if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
+                    primoAvvioOrdine = false;
+                    idUltimoOrdineGlobale = idOrdine;
+
+                    const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
+                    if (!ordiniChannel) return;
+
+                    const titoloMO = ordineAttuale.title || "NUOVO ORDINE GLOBALE";
+                    const descrizioneMO = ordineAttuale.description || "Istruzioni tattiche in corso di ricezione dal comando centrale.";
+                    const briefingMO = ordineAttuale.briefing || "";
+                    
+                    let ricompensaTesto = "Nessuna medaglia specificata";
+                    if (ordineAttuale.reward && ordineAttuale.reward.amount) {
+                        ricompensaTesto = `🏅 **${ordineAttuale.reward.amount} Medaglie di Schieramento**`;
+                    }
+
+                    const embedOrdine = new EmbedBuilder()
+                        .setColor(0xFFD700) 
+                        .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
+                        .setTitle(`⚠️ DISPACCIO UFFICIALE: ${titoloMO.toUpperCase()}`)
+                        .setDescription(
+                            `✉️ **Briefing di Guerra:**\n*${briefingMO}*\n\n` +
+                            `🎯 **Obiettivo Strategico:**\n${descrizioneMO}\n\n` +
+                            `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
+                            `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
+                        )
+                        .setTimestamp();
+
+                    let filesList = [];
+                    if (fs.existsSync("./logo.png")) {
+                        filesList.push(new AttachmentBuilder("./logo.png"));
+                        embedOrdine.setImage("attachment://logo.png");
+                    }
+
+                    ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
+                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
+                        .catch(console.error);
+                }
+            } catch (err) {}
+        });
+    }).on("error", () => {});
+}
 
 function controllaSpostamentoDSS() {
     const opz = { 
@@ -70,25 +139,20 @@ function controllaSpostamentoDSS() {
 
                 if (res.statusCode === 200) {
                     const dssInfo = JSON.parse(data);
-                    
-                    // Estraiamo il nome del pianeta specifico
                     if (dssInfo && dssInfo.planet && dssInfo.planet.name) {
                         nomePianeta = dssInfo.planet.name;
                     } else if (dssInfo && dssInfo.planetName) {
                         nomePianeta = dssInfo.planetName;
                     }
 
-                    // Estraiamo il nome del settore galattico (es. Settore Omega)
                     if (dssInfo && dssInfo.planet && dssInfo.planet.sector) {
                         nomeSettore = dssInfo.planet.sector;
                     } else if (dssInfo && dssInfo.sector) {
                         nomeSettore = dssInfo.sector;
                     }
 
-                    // Uniamo i dati in un formato militare elegante se disponibili
                     if (nomePianeta) {
                         if (nomeSettore) {
-                            // Converte in maiuscolo per lo stile di gioco (es. SETTORE OMEGA — SENGE 23)
                             stringaPosizioneCompleta = `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}`;
                         } else {
                             stringaPosizioneCompleta = nomePianeta.toUpperCase();
@@ -96,7 +160,6 @@ function controllaSpostamentoDSS() {
                     }
                 }
 
-                // Se i dati internet sono vuoti, mantiene l'ultimo testo valido conosciuto per non resettare la chat
                 if (stringaPosizioneCompleta === "✨ SETTORE OPERATIVO TOP SECRET ✨" && ultimoPianetaDSS !== "") {
                     return; 
                 }
@@ -144,40 +207,3 @@ setInterval(() => {
                     if (utentiInPartita.has(m.user.id) && !timerUscitaUtenti.has(m.user.id)) {
                         const timerId = setTimeout(() => {
                             utentiInPartita.delete(m.user.id);
-                            timerUscitaUtenti.delete(m.user.id);
-                            inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0x8B0000, "🚀 FRONTE GALATTICO", "Rientro alla Base Completo", "Il soldato **" + m.user.username + "** ha completato le operazioni ed è **rientrato sulla sua nave spaziale**.", m);
-                        }, 30000); 
-                        timerUscitaUtenti.set(m.user.id, timerId);
-                    }
-                };
-
-                if (!presence?.activities || presence.activities.length === 0) return gestisciUscita();
-                if (presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
-                    if (timerUscitaUtenti.has(m.user.id)) {
-                        clearTimeout(timerUscitaUtenti.get(m.user.id));
-                        timerUscitaUtenti.delete(m.user.id);
-                        return;
-                    }
-                    if (!utentiInPartita.has(m.user.id)) {
-                        utentiInPartita.add(m.user.id);
-                        inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0xFFDF00, "🚀 ORDINE DALLA SUPER TERRA", "Helldiver Schierato in Orbita", "Il soldato **" + m.user.username + "** si è appena schierato su **HELLDIVERS™ 2**!\n\n**Stato Missione:** Spargere Democrazia ✨", m);
-                    }
-                } else gestisciUscita();
-            });
-        } catch (e) {}
-    });
-}, 5000);
-
-function inviaEmbedGiocatori(canaleId, colore, autore, titolo, descrizione, member = null) {
-    const channel = client.channels.cache.get(canaleId);
-    if (!channel) return;
-    let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
-    const emb = new EmbedBuilder().setColor(colore).setAuthor({ name: autore }).setTitle(titolo).setDescription(descrizione).setTimestamp();
-    if (member) emb.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
-    if (files.length > 0) emb.setImage("attachment://logo.png");
-    channel.send({ embeds: [emb], files }).catch(() => {});
-}
-
-client.on("error", () => {});
-process.on("unhandledRejection", () => {});
-client.login(DISCORD_TOKEN);
