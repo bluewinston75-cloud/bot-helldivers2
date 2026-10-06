@@ -71,11 +71,18 @@ function controllaOrdineGlobale() {
         res.on("end", () => {
             try {
                 if (res.statusCode !== 200) return;
-                let ordini = JSON.parse(data);
-                if (!ordini) return;
+                let jsonParsed = JSON.parse(data);
+                if (!jsonParsed) return;
                 
-                // Se la risposta è una lista, estraiamo il primo elemento
-                let ordineAttuale = Array.isArray(ordini) ? ordini[0] : ordini;
+                // Gestione di sicurezza dell'elenco degli ordini
+                let ordineAttuale = null;
+                if (Array.isArray(jsonParsed)) {
+                    if (jsonParsed.length === 0) return;
+                    ordineAttuale = jsonParsed[0];
+                } else {
+                    ordineAttuale = jsonParsed;
+                }
+                
                 if (!ordineAttuale) return;
 
                 const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
@@ -188,7 +195,7 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedOrdine.setImage("attachment://logo.png");
+                        embedDSS.setImage("attachment://logo.png");
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
@@ -203,7 +210,3 @@ setInterval(() => {
         try {
             const members = await guild.members.fetch({ withPresences: true });
             members.forEach((m) => {
-                if (m.user.bot || m.user.username === OWNER_USERNAME) return;
-                const presence = m.presence;
-
-                const gestisciUscita = () => {
