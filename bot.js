@@ -64,20 +64,46 @@ function controllaSpostamentoDSS() {
         res.on("data", (chunk) => data += chunk);
         res.on("end", () => {
             try {
-                let nomePianeta = "✨ SETTORE OPERATIVO TOP SECRET ✨"; 
+                let nomePianeta = "";
+                let nomeSettore = "";
+                let stringaPosizioneCompleta = "✨ SETTORE OPERATIVO TOP SECRET ✨";
 
                 if (res.statusCode === 200) {
                     const dssInfo = JSON.parse(data);
+                    
+                    // Estraiamo il nome del pianeta specifico
                     if (dssInfo && dssInfo.planet && dssInfo.planet.name) {
                         nomePianeta = dssInfo.planet.name;
                     } else if (dssInfo && dssInfo.planetName) {
                         nomePianeta = dssInfo.planetName;
                     }
+
+                    // Estraiamo il nome del settore galattico (es. Settore Omega)
+                    if (dssInfo && dssInfo.planet && dssInfo.planet.sector) {
+                        nomeSettore = dssInfo.planet.sector;
+                    } else if (dssInfo && dssInfo.sector) {
+                        nomeSettore = dssInfo.sector;
+                    }
+
+                    // Uniamo i dati in un formato militare elegante se disponibili
+                    if (nomePianeta) {
+                        if (nomeSettore) {
+                            // Converte in maiuscolo per lo stile di gioco (es. SETTORE OMEGA — SENGE 23)
+                            stringaPosizioneCompleta = `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}`;
+                        } else {
+                            stringaPosizioneCompleta = nomePianeta.toUpperCase();
+                        }
+                    }
                 }
 
-                if (primoAvvioDSS || nomePianeta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
+                // Se i dati internet sono vuoti, mantiene l'ultimo testo valido conosciuto per non resettare la chat
+                if (stringaPosizioneCompleta === "✨ SETTORE OPERATIVO TOP SECRET ✨" && ultimoPianetaDSS !== "") {
+                    return; 
+                }
+
+                if (primoAvvioDSS || stringaPosizioneCompleta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
                     primoAvvioDSS = false;
-                    ultimoPianetaDSS = nomePianeta;
+                    ultimoPianetaDSS = stringaPosizioneCompleta;
 
                     const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
                     if (!dssChannel) return;
@@ -87,7 +113,7 @@ function controllaSpostamentoDSS() {
                         .setColor(0x00AEFF)
                         .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
                         .setTitle("Aggiornamento Posizione Stazione Spaziale (DSS)")
-                        .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + nomePianeta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
+                        .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + stringaPosizioneCompleta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
                         .setTimestamp();
 
                     if (fs.existsSync("./dss.png")) {
