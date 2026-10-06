@@ -74,7 +74,7 @@ function controllaOrdineGlobale() {
                 const ordini = JSON.parse(data);
                 if (!ordini || ordini.length === 0) return;
 
-                const ordineAttuale = ordini[0];
+                const ordineAttuale = ordini[0] || ordini;
                 const idOrdine = ordineAttuale.id || ordineAttuale.id32;
 
                 if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
