@@ -74,14 +74,8 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                let ordineAttuale = null;
-                if (Array.isArray(jsonParsed)) {
-                    if (jsonParsed.length === 0) return;
-                    ordineAttuale = jsonParsed[0]; 
-                } else {
-                    ordineAttuale = jsonParsed;
-                }
-                
+                // FIX EXTRA: Estraiamo il primo elemento se l'API risponde con una lista
+                let ordineAttuale = Array.isArray(jsonParsed) ? jsonParsed[0] : jsonParsed;
                 if (!ordineAttuale) return;
 
                 const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
@@ -194,7 +188,7 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png"); // FIXATO DEFINITIVAMENTE QUI
+                        embedDSS.setImage("attachment://logo.png"); 
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
@@ -209,3 +203,7 @@ setInterval(() => {
         try {
             const members = await guild.members.fetch({ withPresences: true });
             members.forEach((m) => {
+                if (m.user.bot || m.user.username === OWNER_USERNAME) return;
+                const presence = m.presence;
+
+                const gestisciUscita = () => {
