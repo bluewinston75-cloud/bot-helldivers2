@@ -60,7 +60,7 @@ client.on("interactionCreate", async (interaction) => {
 function controllaOrdineGlobale() {
     const opz = { 
         hostname: 'api.helldivers2.dev', 
-        path: '/v1/v2/assignments', 
+        path: '/v1/assignments', 
         method: 'GET', 
         headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
     };
@@ -71,11 +71,14 @@ function controllaOrdineGlobale() {
         res.on("end", () => {
             try {
                 if (res.statusCode !== 200) return;
-                const ordini = JSON.parse(data);
-                if (!ordini || ordini.length === 0) return;
+                let ordini = JSON.parse(data);
+                if (!ordini) return;
+                
+                // Se la risposta è una lista, estraiamo il primo elemento
+                let ordineAttuale = Array.isArray(ordini) ? ordini[0] : ordini;
+                if (!ordineAttuale) return;
 
-                const ordineAttuale = ordini[0] || ordini;
-                const idOrdine = ordineAttuale.id || ordineAttuale.id32;
+                const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
 
                 if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
                     primoAvvioOrdine = false;
@@ -185,7 +188,7 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png");
+                        embedOrdine.setImage("attachment://logo.png");
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
@@ -204,6 +207,3 @@ setInterval(() => {
                 const presence = m.presence;
 
                 const gestisciUscita = () => {
-                    if (utentiInPartita.has(m.user.id) && !timerUscitaUtenti.has(m.user.id)) {
-                        const timerId = setTimeout(() => {
-                            utentiInPartita.delete(m.user.id);
