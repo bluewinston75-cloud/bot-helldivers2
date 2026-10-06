@@ -77,7 +77,7 @@ function controllaOrdineGlobale() {
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
-                    ordineAttuale = jsonParsed[0]; // Estrae il primo ordine reale attivo dalla lista
+                    ordineAttuale = jsonParsed[0]; 
                 } else {
                     ordineAttuale = jsonParsed;
                 }
@@ -194,7 +194,7 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png"); // FIXATO: Qui c'era embedOrdine ed era il motivo del crash!
+                        embedDSS.setImage("attachment://logo.png"); // FIXATO DEFINITIVAMENTE QUI
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
@@ -208,3 +208,4 @@ setInterval(() => {
     client.guilds.cache.forEach(async (guild) => {
         try {
             const members = await guild.members.fetch({ withPresences: true });
+            members.forEach((m) => {
