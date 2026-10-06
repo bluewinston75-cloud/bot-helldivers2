@@ -74,8 +74,15 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // FIX EXTRA: Estraiamo il primo elemento se l'API risponde con una lista
-                let ordineAttuale = Array.isArray(jsonParsed) ? jsonParsed[0] : jsonParsed;
+                // SISTEMAZIONE CHIAVE: Se è una lista, estraiamo l'ordine in posizione 0
+                let ordineAttuale = null;
+                if (Array.isArray(jsonParsed)) {
+                    if (jsonParsed.length === 0) return;
+                    ordineAttuale = jsonParsed[0]; 
+                } else {
+                    ordineAttuale = jsonParsed;
+                }
+                
                 if (!ordineAttuale) return;
 
                 const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
@@ -203,7 +210,3 @@ setInterval(() => {
         try {
             const members = await guild.members.fetch({ withPresences: true });
             members.forEach((m) => {
-                if (m.user.bot || m.user.username === OWNER_USERNAME) return;
-                const presence = m.presence;
-
-                const gestisciUscita = () => {
