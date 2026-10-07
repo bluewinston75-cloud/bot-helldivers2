@@ -58,151 +58,143 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 function controllaOrdineGlobale() {
-    const opz = { 
-        hostname: 'api.helldivers2.dev', 
-        path: '/v1/assignments', 
-        method: 'GET', 
-        headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
-    };
+    try {
+        const opz = { 
+            hostname: 'api.helldivers2.dev', 
+            path: '/v1/assignments', 
+            method: 'GET', 
+            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
+        };
 
-    https.get(opz, (res) => {
-        let data = "";
-        res.on("data", (chunk) => data += chunk);
-        res.on("end", () => {
-            try {
-                if (res.statusCode !== 200) return;
-                let jsonParsed = JSON.parse(data);
-                if (!jsonParsed) return;
-                
-                // CORREZIONE CRITICA: Estraiamo l'ordine reale isolando la prima posizione dell'array usando l'indice [0]
-                let ordineAttuale = null;
-                if (Array.isArray(jsonParsed)) {
-                    if (jsonParsed.length === 0) return;
-                    ordineAttuale = jsonParsed[0]; 
-                } else {
-                    ordineAttuale = jsonParsed;
-                }
-                
-                if (!ordineAttuale || typeof ordineAttuale !== 'object') return;
-
-                const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
-
-                if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
-                    primoAvvioOrdine = false;
-                    idUltimoOrdineGlobale = idOrdine;
-
-                    const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
-                    if (!ordiniChannel) return;
-
-                    const titoloMO = ordineAttuale.title || "NUOVO ORDINE GLOBALE";
-                    const descrizioneMO = ordineAttuale.description || "Istruzioni tattiche in corso di ricezione dal comando centrale.";
-                    const briefingMO = ordineAttuale.briefing || "";
+        const req = https.get(opz, (res) => {
+            let data = "";
+            res.on("data", (chunk) => data += chunk);
+            res.on("end", () => {
+                try {
+                    if (res.statusCode !== 200) return;
+                    let jsonParsed = JSON.parse(data);
+                    if (!jsonParsed) return;
                     
-                    let ricompensaTesto = "Nessuna medaglia specificata";
-                    if (ordineAttuale.reward && ordineAttuale.reward.amount) {
-                        ricompensaTesto = `🏅 **${ordineAttuale.reward.amount} Medaglie di Schieramento**`;
+                    let ordineAttuale = null;
+                    if (Array.isArray(jsonParsed)) {
+                        if (jsonParsed.length === 0) return;
+                        ordineAttuale = jsonParsed[0]; 
+                    } else {
+                        ordineAttuale = jsonParsed;
                     }
+                    
+                    if (!ordineAttuale || typeof ordineAttuale !== 'object') return;
 
-                    const embedOrdine = new EmbedBuilder()
-                        .setColor(0xFFD700) 
-                        .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
-                        .setTitle(`⚠️ DISPACCIO UFFICIALE: ${titoloMO.toUpperCase()}`)
-                        .setDescription(
-                            `✉️ **Briefing di Guerra:**\n*${briefingMO}*\n\n` +
-                            `🎯 **Obiettivo Strategico:**\n${descrizioneMO}\n\n` +
-                            `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
-                            `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
-                        )
-                        .setImage("https://discordapp.com") 
-                        .setTimestamp();
+                    const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
 
-                    ordiniChannel.send({ embeds: [embedOrdine] })
-                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
-                        .catch(console.error);
+                    if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
+                        primoAvvioOrdine = false;
+                        idUltimoOrdineGlobale = idOrdine;
+
+                        const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
+                        if (!ordiniChannel) return;
+
+                        const titoloMO = ordineAttuale.title || "NUOVO ORDINE GLOBALE";
+                        const descrizioneMO = ordineAttuale.description || "Istruzioni tattiche in corso di ricezione dal comando centrale.";
+                        const briefingMO = ordineAttuale.briefing || "";
+                        
+                        let ricompensaTesto = "Nessuna medaglia specificata";
+                        if (ordineAttuale.reward && ordineAttuale.reward.amount) {
+                            ricompensaTesto = `🏅 **${ordineAttuale.reward.amount} Medaglie di Schieramento**`;
+                        }
+
+                        const embedOrdine = new EmbedBuilder()
+                            .setColor(0xFFD700) 
+                            .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
+                            .setTitle(`⚠️ DISPACCIO UFFICIALE: ${titoloMO.toUpperCase()}`)
+                            .setDescription(
+                                `✉️ **Briefing di Guerra:**\n*${briefingMO}*\n\n` +
+                                `🎯 **Obiettivo Strategico:**\n${descrizioneMO}\n\n` +
+                                `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
+                                `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
+                            )
+                            .setImage("https://discordapp.com") 
+                            .setTimestamp();
+
+                        ordiniChannel.send({ embeds: [embedOrdine] })
+                            .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
+                            .catch(console.error);
+                    }
+                } catch (err) {
+                    console.log("[ASSORBITO] Errore lettura dati ordine, salto il turno.");
                 }
-            } catch (err) {
-                console.log("[PROTETTO] Errore assorbito, salto il turno degli ordini senza crashare.");
-            }
+            });
         });
-    }).on("error", () => {});
+        
+        req.on("error", () => {
+            console.log("[ASSORBITO] Server API offline, salto il controllo ordini.");
+        });
+    } catch (e) {
+        console.log("[PROTETTO] Errore di connessione bloccato, il bot rimane online.");
+    }
 }
 
 function controllaSpostamentoDSS() {
-    const opz = { 
-        hostname: 'api.helldivers2.dev', 
-        path: '/v1/space-station', 
-        method: 'GET', 
-        headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot' } 
-    };
+    try {
+        const opz = { 
+            hostname: 'api.helldivers2.dev', 
+            path: '/v1/space-station', 
+            method: 'GET', 
+            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot' } 
+        };
 
-    https.get(opz, (res) => {
-        let data = "";
-        res.on("data", (chunk) => data += chunk);
-        res.on("end", () => {
-            try {
-                let nomePianeta = "";
-                let nomeSettore = "";
-                let stringaPosizioneCompleta = "✨ SETTORE OPERATIVO TOP SECRET ✨";
+        const req = https.get(opz, (res) => {
+            let data = "";
+            res.on("data", (chunk) => data += chunk);
+            res.on("end", () => {
+                try {
+                    let nomePianeta = "";
+                    let nomeSettore = "";
+                    let stringaPosizioneCompleta = "✨ SETTORE OPERATIVO TOP SECRET ✨";
 
-                if (res.statusCode === 200) {
-                    const dssInfo = JSON.parse(data);
-                    if (dssInfo && dssInfo.planet && dssInfo.planet.name) {
-                        nomePianeta = dssInfo.planet.name;
-                    } else if (dssInfo && dssInfo.planetName) {
-                        nomePianeta = dssInfo.planetName;
-                    }
+                    if (res.statusCode === 200) {
+                        const dssInfo = JSON.parse(data);
+                        if (dssInfo && dssInfo.planet && dssInfo.planet.name) {
+                            nomePianeta = dssInfo.planet.name;
+                        } else if (dssInfo && dssInfo.planetName) {
+                            nomePianeta = dssInfo.planetName;
+                        }
 
-                    if (dssInfo && dssInfo.planet && dssInfo.planet.sector) {
-                        nomeSettore = dssInfo.planet.sector;
-                    } else if (dssInfo && dssInfo.sector) {
-                        nomeSettore = dssInfo.sector;
-                    }
+                        if (dssInfo && dssInfo.planet && dssInfo.planet.sector) {
+                            nomeSettore = dssInfo.planet.sector;
+                        } else if (dssInfo && dssInfo.sector) {
+                            nomeSettore = dssInfo.sector;
+                        }
 
-                    if (nomePianeta) {
-                        if (nomeSettore) {
-                            stringaPosizioneCompleta = `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}`;
-                        } else {
-                            stringaPosizioneCompleta = nomePianeta.toUpperCase();
+                        if (nomePianeta) {
+                            if (nomeSettore) {
+                                stringaPosizioneCompleta = `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}`;
+                            } else {
+                                stringaPosizioneCompleta = nomePianeta.toUpperCase();
+                            }
                         }
                     }
-                }
 
-                if (stringaPosizioneCompleta === "✨ SETTORE OPERATIVO TOP SECRET ✨" && ultimoPianetaDSS !== "") {
-                    return; 
-                }
-
-                if (primoAvvioDSS || stringaPosizioneCompleta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
-                    primoAvvioDSS = false;
-                    ultimoPianetaDSS = stringaPosizioneCompleta;
-
-                    const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
-                    if (!dssChannel) return;
-
-                    let filesList = [];
-                    const embedDSS = new EmbedBuilder()
-                        .setColor(0x00AEFF)
-                        .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
-                        .setTitle("Aggiornamento Posizione Stazione Spaziale (DSS)")
-                        .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + stringaPosizioneCompleta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
-                        .setTimestamp();
-
-                    if (fs.existsSync("./dss.png")) {
-                        filesList.push(new AttachmentBuilder("./dss.png"));
-                        embedDSS.setThumbnail("attachment://dss.png");
-                    }
-                    if (fs.existsSync("./logo.png")) {
-                        filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png"); 
+                    if (stringaPosizioneCompleta === "✨ SETTORE OPERATIVO TOP SECRET ✨" && ultimoPianetaDSS !== "") {
+                        return; 
                     }
 
-                    dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
-                }
-            } catch (err) {}
-        });
-    }).on("error", () => {});
-}
+                    if (primoAvvioDSS || stringaPosizioneCompleta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
+                        primoAvvioDSS = false;
+                        ultimoPianetaDSS = stringaPosizioneCompleta;
 
-setInterval(() => {
-    client.guilds.cache.forEach(async (guild) => {
-        try {
-            const members = await guild.members.fetch({ withPresences: true });
+                        const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
+                        if (!dssChannel) return;
+
+                        let filesList = [];
+                        const embedDSS = new EmbedBuilder()
+                            .setColor(0x00AEFF)
+                            .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
+                            .setTitle("Aggiornamento Posizione Stazione Spaziale (DSS)")
+                            .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + stringaPosizioneCompleta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
+                            .setTimestamp();
+
+                        if (fs.existsSync("./dss.png")) {
+                            filesList.push(new AttachmentBuilder("./dss.png"));
+                            embedDSS.setThumbnail("attachment://dss.png");
+                        }
