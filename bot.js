@@ -9,6 +9,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID; 
 const DSS_CHANNEL_ID = process.env.DSS_CHANNEL_ID;       
 const ORDINI_CHANNEL_ID = process.env.ORDINI_CHANNEL_ID; 
+const NEWS_CHANNEL_ID = process.env.NEWS_CHANNEL_ID; 
 const OWNER_USERNAME = process.env.OWNER_USERNAME;       
 
 const commands = [
@@ -50,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (AGGIUNTO IL PULSANTE STRATEGICO!)
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (PARTE SUBITO)
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -74,7 +75,6 @@ function inviaMessaggiBenvenuto() {
                 embedOrdine.setImage("attachment://logo.png");
             }
 
-            // NUOVO PULSANTE PER GLI ORDINI PRINCIPALI
             const bottoneOrdini = new ButtonBuilder()
                 .setLabel("💀 HDC/major_orders")
                 .setStyle(ButtonStyle.Link)
@@ -85,7 +85,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList, components: [rigaOrdini] }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - CON IL LINK HELLPAD PRECISETTO DA TE TROVATO!
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) (RITARDATO DI 3 SECONDI)
         setTimeout(() => {
             const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
             if (dssChannel) {
@@ -108,18 +108,53 @@ function inviaMessaggiBenvenuto() {
                     embedDSS.setImage("attachment://logo.png"); 
                 }
 
-                // IL LINK PRECISETTO HELLPAD PER LA TUA STAZIONE SPAZIALE
                 const bottoneSito = new ButtonBuilder()
                     .setLabel("💀 HDC/space_stations")
                     .setStyle(ButtonStyle.Link)
-                    .setURL("https://helldiverscompanion.com/#hellpad/stations");
+                    .setURL("https://helldiverscompanion.com/#hellpad/stations"); 
+
                 const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
 
-                dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] })
-                    .then(() => console.log("[RADAR DSS] Messaggio inviato con successo."))
-                    .catch(console.error);
+                dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] }).catch(() => {});
             }
         }, 3000);
+
+        // 3. MESSAGGIO IN STANZA NEWS DI LOGISTICA - AGGIORNATO CON LA TUA IMMAGINE DEL GENERALE BRESCH! (RITARDATO DI 6 SECONDI)
+        setTimeout(() => {
+            const newsChannel = client.channels.cache.get(NEWS_CHANNEL_ID);
+            if (newsChannel) {
+                const embedNews = new EmbedBuilder()
+                    .setColor(0xEE82EE) 
+                    .setAuthor({ name: "📺 MINISTERO DELLA VERITÀ" })
+                    .setTitle("📰 CANALE NOTIZIE DI GALASSIA ATTIVO")
+                    .setDescription(
+                        `📢 **Bollettino Informativo:**\n*La plancia dei corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n` +
+                        `🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n` +
+                        `⚠️ *Si ricorda ai cittadini che consultare fonti non verificate dal Ministero costituisce reato di tradimento.*`
+                    )
+                    .setTimestamp();
+
+                let filesListNews = [];
+                if (fs.existsSync("./news.png")) {
+                    filesListNews.push(new AttachmentBuilder("./news.png"));
+                    embedNews.setImage("attachment://news.png"); // CARICA LA TUA NUOVA GRAFICA DEL NOTIZIARIO!
+                } else if (fs.existsSync("./logo.png")) {
+                    filesListNews.push(new AttachmentBuilder("./logo.png"));
+                    embedNews.setImage("attachment://logo.png"); 
+                }
+
+                const bottoneNews = new ButtonBuilder()
+                    .setLabel("💀 HDC/news_feed")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL("https://helldiverscompanion.com/#news"); 
+
+                const rigaNews = new ActionRowBuilder().addComponents(bottoneNews);
+
+                newsChannel.send({ embeds: [embedNews], files: filesListNews, components: [rigaNews] })
+                    .then(() => console.log("[RADAR NEWS] Tabellone notizie configurato con successo."))
+                    .catch(console.error);
+            }
+        }, 6000);
 
     } catch (e) {}
 }
@@ -144,32 +179,3 @@ setInterval(() => {
                 };
 
                 if (!presence?.activities || presence.activities.length === 0) return gestisciUscita();
-                if (presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
-                    if (timerUscitaUtenti.has(m.user.id)) {
-                        clearTimeout(timerUscitaUtenti.get(m.user.id));
-                        timerUscitaUtenti.delete(m.user.id);
-                        return;
-                    }
-                    if (!utentiInPartita.has(m.user.id)) {
-                        utentiInPartita.add(m.user.id);
-                        inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0xFFDF00, "🚀 ORDINE DALLA SUPER TERRA", "Helldiver Schierato in Orbita", "Il soldato **" + m.user.username + "** si è appena schierato su **HELLDIVERS™ 2**!\n\n**Stato Missione:** Spargere Democrazia ✨", m);
-                    }
-                } else gestisciUscita();
-            });
-        } catch (e) {}
-    });
-}, 5000);
-
-function inviaEmbedGiocatori(canaleId, colore, autore, titolo, descrizione, member = null) {
-    const channel = client.channels.cache.get(canaleId);
-    if (!channel) return;
-    let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
-    const emb = new EmbedBuilder().setColor(colore).setAuthor({ name: autore }).setTitle(titolo).setDescription(descrizione).setTimestamp();
-    if (member) emb.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
-    if (files.length > 0) emb.setImage("attachment://logo.png");
-    channel.send({ embeds: [emb], files }).catch(() => {});
-}
-
-client.on("error", () => {});
-process.on("unhandledRejection", () => {});
-client.login(DISCORD_TOKEN);
