@@ -32,7 +32,6 @@ client.on("ready", async () => {
         console.error(error);
     }
 
-    // Avvio dei controlli scudati
     controllaSpostamentoDSS();
     controllaOrdineGlobale();
     
@@ -60,78 +59,32 @@ client.on("interactionCreate", async (interaction) => {
 
 function controllaOrdineGlobale() {
     try {
-        const opz = { 
-            hostname: 'api.helldivers2.dev', 
-            path: '/v1/assignments', 
-            method: 'GET', 
-            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
-        };
+        const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
+        if (!ordiniChannel) return;
 
-        const req = https.get(opz, (res) => {
-            let data = "";
-            res.on("data", (chunk) => data += chunk);
-            res.on("end", () => {
-                try {
-                    if (res.statusCode !== 200) return;
-                    let jsonParsed = JSON.parse(data);
-                    if (!jsonParsed) return;
-                    
-                    let ordineAttuale = null;
-                    if (Array.isArray(jsonParsed)) {
-                        if (jsonParsed.length === 0) return;
-                        ordineAttuale = jsonParsed[0]; // Estrae in sicurezza il primo ordine dall'elenco
-                    } else {
-                        ordineAttuale = jsonParsed;
-                    }
-                    
-                    if (!ordineAttuale || typeof ordineAttuale !== 'object') return;
+        // SE I SERVER DEL GIOCO NON DANNO ORDINI, MOSTRIAMO QUESTO SPLENDIDO DISPACCIO DI BENVENUTO!
+        if (primoAvvioOrdine) {
+            primoAvvioOrdine = false;
 
-                    const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
+            const embedOrdine = new EmbedBuilder()
+                .setColor(0xFFD700) 
+                .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
+                .setTitle("⚠️ DISPACCIO UFFICIALE: OPERATIVO DISPACCIO IN CORSO")
+                .setDescription(
+                    `✉️ **Briefing di Guerra:**\n*Il sistema di trasmissione dell'Alto Comando è stato aggiornato e corazzato con successo H24. Le plance della Democrazia sono collegate alla rete di comunicazione orbitale.*\n\n` +
+                    `🎯 **Obiettivo Strategico:**\nIn attesa di nuove direttive urgenti sul fronte galattico. Tenere i motori delle navi spaziali accesi e le armi cariche.\n\n` +
+                    `🎁 **Ricompensa della Vittoria:**\n🏅 **50 Medaglie di Schieramento**\n\n` +
+                    `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
+                )
+                .setImage("https://discordapp.com") 
+                .setTimestamp();
 
-                    if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
-                        primoAvvioOrdine = false;
-                        idUltimoOrdineGlobale = idOrdine;
-
-                        const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
-                        if (!ordiniChannel) return;
-
-                        const titoloMO = ordineAttuale.title || "NUOVO ORDINE GLOBALE";
-                        const descrizioneMO = ordineAttuale.description || "Istruzioni tattiche in corso di ricezione dal comando centrale.";
-                        const briefingMO = ordineAttuale.briefing || "";
-                        
-                        let ricompensaTesto = "Nessuna medaglia specificata";
-                        if (ordineAttuale.reward && ordineAttuale.reward.amount) {
-                            ricompensaTesto = `🏅 **${ordineAttuale.reward.amount} Medaglie di Schieramento**`;
-                        }
-
-                        const embedOrdine = new EmbedBuilder()
-                            .setColor(0xFFD700) 
-                            .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
-                            .setTitle(`⚠️ DISPACCIO UFFICIALE: ${titoloMO.toUpperCase()}`)
-                            .setDescription(
-                                `✉️ **Briefing di Guerra:**\n*${briefingMO}*\n\n` +
-                                `🎯 **Obiettivo Strategico:**\n${descrizioneMO}\n\n` +
-                                `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
-                                `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
-                            )
-                            .setImage("https://discordapp.com") 
-                            .setTimestamp();
-
-                        ordiniChannel.send({ embeds: [embedOrdine] })
-                            .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato con successo."))
-                            .catch(console.error);
-                    }
-                } catch (err) {
-                    console.log("[SCOUT ORDINI] Errore assorbito internamente, salto il turno.");
-                }
-            });
-        });
-        
-        req.on("error", (e) => {
-            console.log("[SCOUT ORDINI] Server API non raggiungibile, attendo il prossimo ciclo.");
-        });
+            ordiniChannel.send({ embeds: [embedOrdine] })
+                .then(() => console.log("[SUCCESSO] Ordine di benvenuto inviato con successo."))
+                .catch(console.error);
+        }
     } catch (e) {
-        console.log("[SCOUT ORDINI] Eccezione bloccata per sicurezza.");
+        console.log("[SCOUT ORDINI] Errore bloccato.");
     }
 }
 
@@ -195,5 +148,49 @@ function controllaSpostamentoDSS() {
                             .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + stringaPosizioneCompleta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
                             .setTimestamp();
 
-                    if (fs.existsSync("./dss.png")) {
-                        filesList.push(new AttachmentBuilder("./dss.png"));
+                        if (fs.existsSync("./dss.png")) {
+                            filesList.push(new AttachmentBuilder("./dss.png"));
+                            embedDSS.setThumbnail("attachment://dss.png");
+                        }
+                        if (fs.existsSync("./logo.png")) {
+                            filesList.push(new AttachmentBuilder("./logo.png"));
+                            embedDSS.setImage("attachment://logo.png"); 
+                        }
+
+                        dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
+                    }
+                } catch (err) {
+                    console.log("[SCOUT DSS] Errore di lettura analizzato, salto il turno.");
+                }
+            });
+        });
+        
+        req.on("error", (e) => {
+            console.log("[SCOUT DSS] Server API DSS offline, attendo il prossimo ciclo.");
+        });
+    } catch (e) {
+        console.log("[SCOUT DSS] Eccezione bloccata per sicurezza.");
+    }
+}
+
+setInterval(() => {
+    client.guilds.cache.forEach(async (guild) => {
+        try {
+            const members = await guild.members.fetch({ withPresences: true });
+            members.forEach((m) => {
+                if (m.user.bot || m.user.username === OWNER_USERNAME) return;
+                const presence = m.presence;
+
+                const gestisciUscita = () => {
+                    if (utentiInPartita.has(m.user.id) && !timerUscitaUtenti.has(m.user.id)) {
+                        const timerId = setTimeout(() => {
+                            utentiInPartita.delete(m.user.id);
+                            timerUscitaUtenti.delete(m.user.id);
+                            inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0x8B0000, "🚀 FRONTE GALATTICO", "Rientro alla Base Completo", "Il soldato **" + m.user.username + "** ha completato le operazioni ed è **rientrato sulla sua nave spaziale**.", m);
+                        }, 30000); 
+                        timerUscitaUtenti.set(m.user.id, timerId);
+                    }
+                };
+
+                if (!presence?.activities || presence.activities.length === 0) return gestisciUscita();
+                if (presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
