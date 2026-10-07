@@ -197,7 +197,7 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png"); 
+                        embedDSS.setImage("attachment://logo.png"); // FIXATO: Qui c'era embedOrdine ed era il motivo del crash!
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
@@ -208,4 +208,3 @@ function controllaSpostamentoDSS() {
 }
 
 setInterval(() => {
-    client.guilds.cache.forEach(async (guild) => {
