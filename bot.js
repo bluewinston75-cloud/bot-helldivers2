@@ -34,7 +34,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.user.username !== OWNER_USERNAME) {
-        return interaction.reply({ content: "❌ Questo comando rapido è riservato esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
+        return interaction.reply({ content: "❌ Questo comando rapido è reserved esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
     }
 
     if (interaction.commandName === "inizia") {
@@ -77,7 +77,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) WITH PULSANTE SITO UFFICIALE
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) CON PULSANTE DELLA MAPPA UFFICIALE 3D LINKATO PERFETTAMENTE
         const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
         if (dssChannel) {
             const embedDSS = new EmbedBuilder()
@@ -99,11 +99,11 @@ function inviaMessaggiBenvenuto() {
                 embedDSS.setImage("attachment://logo.png"); 
             }
 
-            // CREAZIONE DEL PULSANTE LINK IDENTICO A QUELLO DELLA FOTO
+            // CREAZIONE DEL BOTTONE LINKATO CORRETTAMENTE ALLA MAPPA DI COMPANION
             const bottoneSito = new ButtonBuilder()
                 .setLabel("💀 HDC/space_stations")
                 .setStyle(ButtonStyle.Link)
-                .setUrl("https://api.dev"); // Il link del database centrale
+                .setUrl("https://helldiverscompanion.com"); 
 
             const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
 
