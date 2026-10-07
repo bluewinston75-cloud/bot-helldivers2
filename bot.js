@@ -77,7 +77,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - CORRETTO E ALLINEATO
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - CON IMPORTAZIONE CORRETTA
         const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
         if (dssChannel) {
             const embedDSS = new EmbedBuilder()
@@ -106,7 +106,6 @@ function inviaMessaggiBenvenuto() {
 
             const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
 
-            // CORREZIONE CHIAVE: Adesso invia filesListDSS in modo corretto!
             dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] }).catch(() => {});
         }
     } catch (e) {}
