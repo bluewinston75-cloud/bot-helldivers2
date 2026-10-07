@@ -1,14 +1,9 @@
 const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const fs = require("fs");
-const https = require("https");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildMembers] });
 const utentiInPartita = new Set();
 const timerUscitaUtenti = new Map();
-let ultimoPianetaDSS = ""; 
-let idUltimoOrdineGlobale = 0;
-let primoAvvioDSS = true;
-let primoAvvioOrdine = true;
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID; 
@@ -32,11 +27,8 @@ client.on("ready", async () => {
         console.error(error);
     }
 
-    controllaSpostamentoDSS();
-    controllaOrdineGlobale();
-    
-    setInterval(controllaSpostamentoDSS, 60000);
-    setInterval(controllaOrdineGlobale, 300000); 
+    // MANDIAMO SUBITO I DUE MESSAGGI DI BENVENUTO SENZA CHIEDERE DATI AI SITI ROTTI!
+    inviaMessaggiBenvenuto();
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -57,120 +49,52 @@ client.on("interactionCreate", async (interaction) => {
     }
 });
 
-function controllaOrdineGlobale() {
+function inviaMessaggiBenvenuto() {
     try {
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
-        if (!ordiniChannel) return;
-
-        // SE I SERVER DEL GIOCO NON DANNO ORDINI, MOSTRIAMO QUESTO SPLENDIDO DISPACCIO DI BENVENUTO!
-        if (primoAvvioOrdine) {
-            primoAvvioOrdine = false;
-
+        if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
                 .setColor(0xFFD700) 
                 .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
-                .setTitle("⚠️ DISPACCIO UFFICIALE: OPERATIVO DISPACCIO IN CORSO")
+                .setTitle("⚠️ DISPACCIO UFFICIALE: SISTEMA DI TRASMISSIONE ATTIVO")
                 .setDescription(
-                    `✉️ **Briefing di Guerra:**\n*Il sistema di trasmissione dell'Alto Comando è stato aggiornato e corazzato con successo H24. Le plance della Democrazia sono collegate alla rete di comunicazione orbitale.*\n\n` +
-                    `🎯 **Obiettivo Strategico:**\nIn attesa di nuove direttive urgenti sul fronte galattico. Tenere i motori delle navi spaziali accesi e le armi cariche.\n\n` +
+                    `✉️ **Briefing di Guerra:**\n*Il sistema di ricezione dell'Alto Comando è stato potenziato e configurato con successo. Le plance tattiche sono allineate H24.*\n\n` +
+                    `🎯 **Obiettivo Strategico:**\nIn attesa di nuove direttive urgenti sul fronte galattico dal Comando Centrale. Tenere i motori delle navi spaziali accesi.\n\n` +
                     `🎁 **Ricompensa della Vittoria:**\n🏅 **50 Medaglie di Schieramento**\n\n` +
                     `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
                 )
                 .setImage("https://discordapp.com") 
                 .setTimestamp();
 
-            ordiniChannel.send({ embeds: [embedOrdine] })
-                .then(() => console.log("[SUCCESSO] Ordine di benvenuto inviato con successo."))
-                .catch(console.error);
+            ordiniChannel.send({ embeds: [embedOrdine] }).catch(() => {});
         }
-    } catch (e) {
-        console.log("[SCOUT ORDINI] Errore bloccato.");
-    }
-}
 
-function controllaSpostamentoDSS() {
-    try {
-        const opz = { 
-            hostname: 'api.helldivers2.dev', 
-            path: '/v1/space-station', 
-            method: 'GET', 
-            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot' } 
-        };
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS)
+        const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
+        if (dssChannel) {
+            const embedDSS = new EmbedBuilder()
+                .setColor(0x00AEFF)
+                .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
+                .setTitle("Stazione Spaziale della Democrazia (DSS) Collegata")
+                .setDescription(
+                    "🛰️ **Sincronizzazione Radar Completata!**\n\nLa Stazione Spaziale ha agganciato i sistemi di tracciamento satellitari del server.\n\n📍 **Fronte Attuale:** `REGISTRO OPERATIVO IN AGGIORNAMENTO`\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a consultare i registri orbitali per i voti tattici.*"
+                )
+                .setTimestamp();
 
-        const req = https.get(opz, (res) => {
-            let data = "";
-            res.on("data", (chunk) => data += chunk);
-            res.on("end", () => {
-                try {
-                    let nomePianeta = "";
-                    let nomeSettore = "";
-                    let stringaPosizioneCompleta = "✨ SETTORE OPERATIVO TOP SECRET ✨";
+            let filesList = [];
+            if (fs.existsSync("./dss.png")) {
+                filesList.push(new AttachmentBuilder("./dss.png"));
+                embedDSS.setThumbnail("attachment://dss.png");
+            }
+            if (fs.existsSync("./logo.png")) {
+                filesList.push(new AttachmentBuilder("./logo.png"));
+                embedDSS.setImage("attachment://logo.png"); 
+            }
 
-                    if (res.statusCode === 200) {
-                        const dssInfo = JSON.parse(data);
-                        if (dssInfo && dssInfo.planet && dssInfo.planet.name) {
-                            nomePianeta = dssInfo.planet.name;
-                        } else if (dssInfo && dssInfo.planetName) {
-                            nomePianeta = dssInfo.planetName;
-                        }
-
-                        if (dssInfo && dssInfo.planet && dssInfo.planet.sector) {
-                            nomeSettore = dssInfo.planet.sector;
-                        } else if (dssInfo && dssInfo.sector) {
-                            nomeSettore = dssInfo.sector;
-                        }
-
-                        if (nomePianeta) {
-                            if (nomeSettore) {
-                                stringaPosizioneCompleta = `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}`;
-                            } else {
-                                stringaPosizioneCompleta = nomePianeta.toUpperCase();
-                            }
-                        }
-                    }
-
-                    if (stringaPosizioneCompleta === "✨ SETTORE OPERATIVO TOP SECRET ✨" && ultimoPianetaDSS !== "") {
-                        return; 
-                    }
-
-                    if (primoAvvioDSS || stringaPosizioneCompleta !== ultimoPianetaDSS || ultimoPianetaDSS === "") {
-                        primoAvvioDSS = false;
-                        ultimoPianetaDSS = stringaPosizioneCompleta;
-
-                        const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
-                        if (!dssChannel) return;
-
-                        let filesList = [];
-                        const embedDSS = new EmbedBuilder()
-                            .setColor(0x00AEFF)
-                            .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
-                            .setTitle("Aggiornamento Posizione Stazione Spaziale (DSS)")
-                            .setDescription("🛰️ **Rilevato Salto Orbitale della DSS!**\n\nLa Stazione Spaziale della Democrazia ha completato le manovre di volo ed è attualmente posizionata nel settore:\n📍 **`" + stringaPosizioneCompleta + "`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare il registro dei voti di schieramento in gioco.*")
-                            .setTimestamp();
-
-                        if (fs.existsSync("./dss.png")) {
-                            filesList.push(new AttachmentBuilder("./dss.png"));
-                            embedDSS.setThumbnail("attachment://dss.png");
-                        }
-                        if (fs.existsSync("./logo.png")) {
-                            filesList.push(new AttachmentBuilder("./logo.png"));
-                            embedDSS.setImage("attachment://logo.png"); 
-                        }
-
-                        dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
-                    }
-                } catch (err) {
-                    console.log("[SCOUT DSS] Errore di lettura analizzato, salto il turno.");
-                }
-            });
-        });
-        
-        req.on("error", (e) => {
-            console.log("[SCOUT DSS] Server API DSS offline, attendo il prossimo ciclo.");
-        });
-    } catch (e) {
-        console.log("[SCOUT DSS] Eccezione bloccata per sicurezza.");
-    }
+            dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(() => {});
+        }
+    } catch (e) {}
 }
 
 setInterval(() => {
@@ -194,3 +118,31 @@ setInterval(() => {
 
                 if (!presence?.activities || presence.activities.length === 0) return gestisciUscita();
                 if (presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
+                    if (timerUscitaUtenti.has(m.user.id)) {
+                        clearTimeout(timerUscitaUtenti.get(m.user.id));
+                        timerUscitaUtenti.delete(m.user.id);
+                        return;
+                    }
+                    if (!utentiInPartita.has(m.user.id)) {
+                        utentiInPartita.add(m.user.id);
+                        inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0xFFDF00, "🚀 ORDINE DALLA SUPER TERRA", "Helldiver Schierato in Orbita", "Il soldato **" + m.user.username + "** si è appena schierato su **HELLDIVERS™ 2**!\n\n**Stato Missione:** Spargere Democrazia ✨", m);
+                    }
+                } else gestisciUscita();
+            });
+        } catch (e) {}
+    });
+}, 5000);
+
+function inviaEmbedGiocatori(canaleId, colore, autore, titolo, descrizione, member = null) {
+    const channel = client.channels.cache.get(canaleId);
+    if (!channel) return;
+    let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
+    const emb = new EmbedBuilder().setColor(colore).setAuthor({ name: autore }).setTitle(titolo).setDescription(descrizione).setTimestamp();
+    if (member) emb.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
+    if (files.length > 0) emb.setImage("attachment://logo.png");
+    channel.send({ embeds: [emb], files }).catch(() => {});
+}
+
+client.on("error", () => {});
+process.on("unhandledRejection", () => {});
+client.login(DISCORD_TOKEN);
