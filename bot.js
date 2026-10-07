@@ -74,6 +74,7 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
+                // SISTEMAZIONE CHIAVE: Se è una lista, estraiamo l'ordine in posizione 0
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
@@ -197,14 +198,10 @@ function controllaSpostamentoDSS() {
                     }
                     if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedDSS.setImage("attachment://logo.png"); // FIXATO: Qui c'era embedOrdine ed era il motivo del crash!
+                        embedDSS.setImage("attachment://logo.png"); 
                     }
 
                     dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
                 }
             } catch (err) {}
         });
-    }).on("error", () => {});
-}
-
-setInterval(() => {
