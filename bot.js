@@ -50,7 +50,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (AGGIUNTO IL PULSANTE STRATEGICO!)
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -74,10 +74,18 @@ function inviaMessaggiBenvenuto() {
                 embedOrdine.setImage("attachment://logo.png");
             }
 
-            ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
+            // NUOVO PULSANTE PER GLI ORDINI PRINCIPALI
+            const bottoneOrdini = new ButtonBuilder()
+                .setLabel("💀 HDC/major_orders")
+                .setStyle(ButtonStyle.Link)
+                .setURL("https://helldiverscompanion.com/#overview");
+
+            const rigaOrdini = new ActionRowBuilder().addComponents(bottoneOrdini);
+
+            ordiniChannel.send({ embeds: [embedOrdine], files: filesList, components: [rigaOrdini] }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - RITARDATO E CON setURL CORRETTO
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - CON IL LINK HELLPAD PRECISETTO DA TE TROVATO!
         setTimeout(() => {
             const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
             if (dssChannel) {
@@ -100,16 +108,15 @@ function inviaMessaggiBenvenuto() {
                     embedDSS.setImage("attachment://logo.png"); 
                 }
 
-                // CORREZIONE CHIAVE: setURL con le lettere URL tutte maiuscole!
+                // IL LINK PRECISETTO HELLPAD PER LA TUA STAZIONE SPAZIALE
                 const bottoneSito = new ButtonBuilder()
                     .setLabel("💀 HDC/space_stations")
                     .setStyle(ButtonStyle.Link)
                     .setURL("https://helldiverscompanion.com/#hellpad/stations");
-
                 const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
 
                 dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] })
-                    .then(() => console.log("[RADAR DSS] Messaggio inviato correttamente con pulsante ufficiale."))
+                    .then(() => console.log("[RADAR DSS] Messaggio inviato con successo."))
                     .catch(console.error);
             }
         }, 3000);
