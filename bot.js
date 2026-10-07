@@ -74,7 +74,6 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // CORREZIONE CRITICA: Estraiamo l'ordine reale isolando la prima posizione [0] dell'array
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
@@ -116,10 +115,23 @@ function controllaOrdineGlobale() {
                         .setTimestamp();
 
                     let filesList = [];
-                    if (fs.existsSync("./logo.png")) {
+                    if (fs.existsSync("./ordine.png")) {
+                        filesList.push(new AttachmentBuilder("./ordine.png"));
+                        embedOrdine.setImage("attachment://ordine.png");
+                    } else if (fs.existsSync("./logo.png")) {
                         filesList.push(new AttachmentBuilder("./logo.png"));
                         embedOrdine.setImage("attachment://logo.png");
                     }
+
+                    ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
+                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat con grafica High Command: " + titoloMO))
+                        .catch(console.error);
+                }
+            } catch (err) {}
+        });
+    }).on("error", () => {});
+}
+
 
                     ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
                         .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
