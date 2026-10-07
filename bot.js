@@ -74,16 +74,15 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // SISTEMAZIONE CHIAVE: Se è una lista, estraiamo l'ordine in posizione 0
+                // Estrattore ultra protetto per evitare crash di array/oggetti
                 let ordineAttuale = null;
-                if (Array.isArray(jsonParsed)) {
-                    if (jsonParsed.length === 0) return;
+                if (Array.isArray(jsonParsed) && jsonParsed.length > 0) {
                     ordineAttuale = jsonParsed[0]; 
-                } else {
+                } else if (!Array.isArray(jsonParsed)) {
                     ordineAttuale = jsonParsed;
                 }
                 
-                if (!ordineAttuale) return;
+                if (!ordineAttuale || typeof ordineAttuale !== 'object') return;
 
                 const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
 
@@ -128,7 +127,9 @@ function controllaOrdineGlobale() {
                         .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
                         .catch(console.error);
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.log("[PROTETTO] Rilevata anomalia nell'API degli ordini, salto il turno senza crashare.");
+            }
         });
     }).on("error", () => {});
 }
@@ -201,7 +202,3 @@ function controllaSpostamentoDSS() {
                         embedDSS.setImage("attachment://logo.png"); 
                     }
 
-                    dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
-                }
-            } catch (err) {}
-        });
