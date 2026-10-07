@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const fs = require("fs");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildMembers] });
@@ -50,7 +50,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (FIXATO CON FILE LOCALE DI GITHUB)
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -68,7 +68,7 @@ function inviaMessaggiBenvenuto() {
             let filesList = [];
             if (fs.existsSync("./ordine.png")) {
                 filesList.push(new AttachmentBuilder("./ordine.png"));
-                embedOrdine.setImage("attachment://ordine.png"); // Legge in cassaforte l'immagine fissa!
+                embedOrdine.setImage("attachment://ordine.png"); 
             } else if (fs.existsSync("./logo.png")) {
                 filesList.push(new AttachmentBuilder("./logo.png"));
                 embedOrdine.setImage("attachment://logo.png");
@@ -77,7 +77,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS)
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) WITH PULSANTE SITO UFFICIALE
         const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
         if (dssChannel) {
             const embedDSS = new EmbedBuilder()
@@ -99,7 +99,15 @@ function inviaMessaggiBenvenuto() {
                 embedDSS.setImage("attachment://logo.png"); 
             }
 
-            dssChannel.send({ embeds: [embedDSS], files: filesListDSS }).catch(() => {});
+            // CREAZIONE DEL PULSANTE LINK IDENTICO A QUELLO DELLA FOTO
+            const bottoneSito = new ButtonBuilder()
+                .setLabel("💀 HDC/space_stations")
+                .setStyle(ButtonStyle.Link)
+                .setUrl("https://api.dev"); // Il link del database centrale
+
+            const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
+
+            dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] }).catch(() => {});
         }
     } catch (e) {}
 }
