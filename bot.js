@@ -104,7 +104,7 @@ function inviaMessaggiBenvenuto() {
                 const bottoneSito = new ButtonBuilder()
                     .setLabel("💀 HDC/space_stations")
                     .setStyle(ButtonStyle.Link)
-                    .setURL("https://helldiverscompanion.com"); 
+                    .setURL("https://helldiverscompanion.com/#hellpad/stations");
 
                 const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
 
