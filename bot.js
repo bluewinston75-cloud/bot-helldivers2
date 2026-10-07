@@ -124,16 +124,6 @@ function controllaOrdineGlobale() {
                     }
 
                     ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
-                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat con grafica High Command: " + titoloMO))
-                        .catch(console.error);
-                }
-            } catch (err) {}
-        });
-    }).on("error", () => {});
-}
-
-
-                    ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
                         .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
                         .catch(console.error);
                 }
@@ -219,5 +209,3 @@ function controllaSpostamentoDSS() {
 
 setInterval(() => {
     client.guilds.cache.forEach(async (guild) => {
-        try {
-            const members = await guild.members.fetch({ withPresences: true });
