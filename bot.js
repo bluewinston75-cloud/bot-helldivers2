@@ -74,7 +74,7 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // SISTEMAZIONE CHIAVE: Se è una lista, estraiamo l'ordine in posizione 0
+                // CORREZIONE CRITICA: Estraiamo l'ordine reale isolando la prima posizione [0] dell'array
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
@@ -209,4 +209,3 @@ setInterval(() => {
     client.guilds.cache.forEach(async (guild) => {
         try {
             const members = await guild.members.fetch({ withPresences: true });
-            members.forEach((m) => {
