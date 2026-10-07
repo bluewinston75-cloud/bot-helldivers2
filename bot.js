@@ -27,6 +27,7 @@ client.on("ready", async () => {
         console.error(error);
     }
 
+    // Forza l'invio immediato delle plance per inserire il pulsantino grigio!
     inviaMessaggiBenvenuto();
 });
 
@@ -50,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
+        // 1. DISPACCIO IN STANZA ORDINI ALTO COMANDO
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -77,7 +78,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) CON PULSANTE DELLA MAPPA UFFICIALE 3D LINKATO PERFETTAMENTE
+        // 2. DISPACCIO IN STANZA STAZIONE SPAZIALE (DSS) CON IL PULSANTINO DELLA MAPPA 3D OLOGRAFICA
         const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
         if (dssChannel) {
             const embedDSS = new EmbedBuilder()
@@ -99,7 +100,7 @@ function inviaMessaggiBenvenuto() {
                 embedDSS.setImage("attachment://logo.png"); 
             }
 
-            // CREAZIONE DEL BOTTONE LINKATO CORRETTAMENTE ALLA MAPPA DI COMPANION
+            // Configurazione del pulsante grigio ufficiale cliccabile
             const bottoneSito = new ButtonBuilder()
                 .setLabel("💀 HDC/space_stations")
                 .setStyle(ButtonStyle.Link)
