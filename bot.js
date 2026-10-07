@@ -34,7 +34,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.user.username !== OWNER_USERNAME) {
-        return interaction.reply({ content: "❌ Questo comando rapido è reserved esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
+        return interaction.reply({ content: "❌ Questo comando rapido è riservato esclusivamente a " + OWNER_USERNAME + "!", ephemeral: true });
     }
 
     if (interaction.commandName === "inizia") {
