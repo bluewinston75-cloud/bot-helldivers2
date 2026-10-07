@@ -74,7 +74,7 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // CORREZIONE DEFINITIVA: Estraiamo l'ordine reale isolando la prima posizione dell'array [0]
+                // CORREZIONE CRITICA: Estraiamo l'ordine reale isolando la prima posizione dell'array usando l'indice [0]
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
