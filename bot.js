@@ -27,6 +27,7 @@ client.on("ready", async () => {
         console.error(error);
     }
 
+    // FISSA: Avvia le trasmissioni in modo scaglionato per evitare il blocco di Discord!
     inviaMessaggiBenvenuto();
 });
 
@@ -50,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (PARTE SUBITO)
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -77,37 +78,42 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - CON IMPORTAZIONE CORRETTA
-        const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
-        if (dssChannel) {
-            const embedDSS = new EmbedBuilder()
-                .setColor(0x00AEFF)
-                .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
-                .setTitle("Stazione Spaziale della Democrazia (DSS) Collegata")
-                .setDescription(
-                    "🛰️ **Sincronizzazione Radar Completata!**\n\nLa Stazione Spaziale ha agganciato i sistemi di tracciamento satellitari del server.\n\n📍 **Fronte Attuale:** `REGISTRO OPERATIVO IN AGGIORNAMENTO`\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a consultare i registri orbitali per i voti tattici.*"
-                )
-                .setTimestamp();
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) - RITARDATO DI 3 SECONDI PER AGGIRARE I BLOCCHI SPIA
+        setTimeout(() => {
+            const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
+            if (dssChannel) {
+                const embedDSS = new EmbedBuilder()
+                    .setColor(0x00AEFF)
+                    .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
+                    .setTitle("Stazione Spaziale della Democrazia (DSS) Collegata")
+                    .setDescription(
+                        "🛰️ **Sincronizzazione Radar Completata!**\n\nLa Stazione Spaziale ha agganciato i sistemi di tracciamento satellitari del server.\n\n📍 **Fronte Attuale:** `REGISTRO OPERATIVO IN AGGIORNAMENTO`\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a consultare i registri orbitali per i voti tattici.*"
+                    )
+                    .setTimestamp();
 
-            let filesListDSS = [];
-            if (fs.existsSync("./dss.png")) {
-                filesListDSS.push(new AttachmentBuilder("./dss.png"));
-                embedDSS.setThumbnail("attachment://dss.png");
+                let filesListDSS = [];
+                if (fs.existsSync("./dss.png")) {
+                    filesListDSS.push(new AttachmentBuilder("./dss.png"));
+                    embedDSS.setThumbnail("attachment://dss.png");
+                }
+                if (fs.existsSync("./logo.png")) {
+                    filesListDSS.push(new AttachmentBuilder("./logo.png"));
+                    embedDSS.setImage("attachment://logo.png"); 
+                }
+
+                const bottoneSito = new ButtonBuilder()
+                    .setLabel("💀 HDC/space_stations")
+                    .setStyle(ButtonStyle.Link)
+                    .setUrl("https://helldiverscompanion.com"); 
+
+                const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
+
+                dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] })
+                    .then(() => console.log("[SUCCESSO RADAR] Messaggio DSS inviato correttamente dopo la pausa."))
+                    .catch(console.error);
             }
-            if (fs.existsSync("./logo.png")) {
-                filesListDSS.push(new AttachmentBuilder("./logo.png"));
-                embedDSS.setImage("attachment://logo.png"); 
-            }
+        }, 3000); // 3000 millisecondi = 3 secondi di attesa intelligente!
 
-            const bottoneSito = new ButtonBuilder()
-                .setLabel("💀 HDC/space_stations")
-                .setStyle(ButtonStyle.Link)
-                .setUrl("https://helldiverscompanion.com"); 
-
-            const rigaBottoni = new ActionRowBuilder().addComponents(bottoneSito);
-
-            dssChannel.send({ embeds: [embedDSS], files: filesListDSS, components: [rigaBottoni] }).catch(() => {});
-        }
     } catch (e) {}
 }
 
