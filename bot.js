@@ -27,7 +27,6 @@ client.on("ready", async () => {
         console.error(error);
     }
 
-    // MANDIAMO SUBITO I DUE MESSAGGI DI BENVENUTO SENZA CHIEDERE DATI AI SITI ROTTI!
     inviaMessaggiBenvenuto();
 });
 
@@ -51,7 +50,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (FIXATO CON FILE LOCALE DI GITHUB)
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -64,10 +63,18 @@ function inviaMessaggiBenvenuto() {
                     `🎁 **Ricompensa della Vittoria:**\n🏅 **50 Medaglie di Schieramento**\n\n` +
                     `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
                 )
-                .setImage("https://discordapp.com") 
                 .setTimestamp();
 
-            ordiniChannel.send({ embeds: [embedOrdine] }).catch(() => {});
+            let filesList = [];
+            if (fs.existsSync("./ordine.png")) {
+                filesList.push(new AttachmentBuilder("./ordine.png"));
+                embedOrdine.setImage("attachment://ordine.png"); // Legge in cassaforte l'immagine fissa!
+            } else if (fs.existsSync("./logo.png")) {
+                filesList.push(new AttachmentBuilder("./logo.png"));
+                embedOrdine.setImage("attachment://logo.png");
+            }
+
+            ordiniChannel.send({ embeds: [embedOrdine], files: filesList }).catch(() => {});
         }
 
         // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS)
@@ -82,17 +89,17 @@ function inviaMessaggiBenvenuto() {
                 )
                 .setTimestamp();
 
-            let filesList = [];
+            let filesListDSS = [];
             if (fs.existsSync("./dss.png")) {
-                filesList.push(new AttachmentBuilder("./dss.png"));
+                filesListDSS.push(new AttachmentBuilder("./dss.png"));
                 embedDSS.setThumbnail("attachment://dss.png");
             }
             if (fs.existsSync("./logo.png")) {
-                filesList.push(new AttachmentBuilder("./logo.png"));
+                filesListDSS.push(new AttachmentBuilder("./logo.png"));
                 embedDSS.setImage("attachment://logo.png"); 
             }
 
-            dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(() => {});
+            dssChannel.send({ embeds: [embedDSS], files: filesListDSS }).catch(() => {});
         }
     } catch (e) {}
 }
