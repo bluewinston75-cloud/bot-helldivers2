@@ -51,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO (PARTE SUBITO)
+        // 1. MESSAGGIO IN STANZA ORDINI ALTO COMANDO
         const ordiniChannel = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (ordiniChannel) {
             const embedOrdine = new EmbedBuilder()
@@ -85,7 +85,7 @@ function inviaMessaggiBenvenuto() {
             ordiniChannel.send({ embeds: [embedOrdine], files: filesList, components: [rigaOrdini] }).catch(() => {});
         }
 
-        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS) (RITARDATO DI 3 SECONDI)
+        // 2. MESSAGGIO IN STANZA STAZIONE SPAZIALE (DSS)
         setTimeout(() => {
             const dssChannel = client.channels.cache.get(DSS_CHANNEL_ID);
             if (dssChannel) {
@@ -119,7 +119,7 @@ function inviaMessaggiBenvenuto() {
             }
         }, 3000);
 
-        // 3. MESSAGGIO IN STANZA NEWS DI LOGISTICA - AGGIORNATO CON LA TUA IMMAGINE DEL GENERALE BRESCH! (RITARDATO DI 6 SECONDI)
+        // 3. MESSAGGIO IN STANZA NEWS DI LOGISTICA WITH GENERALE BRESCH IMAGE
         setTimeout(() => {
             const newsChannel = client.channels.cache.get(NEWS_CHANNEL_ID);
             if (newsChannel) {
@@ -130,14 +130,14 @@ function inviaMessaggiBenvenuto() {
                     .setDescription(
                         `📢 **Bollettino Informativo:**\n*La plancia dei corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n` +
                         `🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n` +
-                        `⚠️ *Si ricorda ai cittadini che consultare fonti non verificate dal Ministero costituisce reato di tradimento.*`
+                        `⚠️ *Si ricorda ai cittadini che consultare fontes non verificate dal Ministero costituisce reato di tradimento.*`
                     )
                     .setTimestamp();
 
                 let filesListNews = [];
                 if (fs.existsSync("./news.png")) {
                     filesListNews.push(new AttachmentBuilder("./news.png"));
-                    embedNews.setImage("attachment://news.png"); // CARICA LA TUA NUOVA GRAFICA DEL NOTIZIARIO!
+                    embedNews.setImage("attachment://news.png"); 
                 } else if (fs.existsSync("./logo.png")) {
                     filesListNews.push(new AttachmentBuilder("./logo.png"));
                     embedNews.setImage("attachment://logo.png"); 
@@ -179,3 +179,5 @@ setInterval(() => {
                 };
 
                 if (!presence?.activities || presence.activities.length === 0) return gestisciUscita();
+                if (presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
+                    if (timerUscitaUtenti.has(m.user.id)) {
