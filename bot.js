@@ -74,11 +74,11 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
-                // Estrattore ultra protetto per evitare crash di array/oggetti
                 let ordineAttuale = null;
-                if (Array.isArray(jsonParsed) && jsonParsed.length > 0) {
-                    ordineAttuale = jsonParsed[0]; 
-                } else if (!Array.isArray(jsonParsed)) {
+                if (Array.isArray(jsonParsed)) {
+                    if (jsonParsed.length === 0) return;
+                    ordineAttuale = jsonParsed[0]; // Estrae il primo ordine reale attivo dall'elenco
+                } else {
                     ordineAttuale = jsonParsed;
                 }
                 
@@ -112,23 +112,15 @@ function controllaOrdineGlobale() {
                             `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
                             `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
                         )
+                        .setImage("https://discordapp.com") // LINK DIRETTO CORAZZATO E SICURO SENZA FILE LOCALI!
                         .setTimestamp();
 
-                    let filesList = [];
-                    if (fs.existsSync("./ordine.png")) {
-                        filesList.push(new AttachmentBuilder("./ordine.png"));
-                        embedOrdine.setImage("attachment://ordine.png");
-                    } else if (fs.existsSync("./logo.png")) {
-                        filesList.push(new AttachmentBuilder("./logo.png"));
-                        embedOrdine.setImage("attachment://logo.png");
-                    }
-
-                    ordiniChannel.send({ embeds: [embedOrdine], files: filesList })
-                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
+                    ordiniChannel.send({ embeds: [embedOrdine] })
+                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat con grafica High Command: " + titoloMO))
                         .catch(console.error);
                 }
             } catch (err) {
-                console.log("[PROTETTO] Rilevata anomalia nell'API degli ordini, salto il turno senza crashare.");
+                console.log("[PROTETTO] Errore assorbito, salto il turno degli ordini senza crashare.");
             }
         });
     }).on("error", () => {});
@@ -202,3 +194,14 @@ function controllaSpostamentoDSS() {
                         embedDSS.setImage("attachment://logo.png"); 
                     }
 
+                    dssChannel.send({ embeds: [embedDSS], files: filesList }).catch(console.error);
+                }
+            } catch (err) {}
+        });
+    }).on("error", () => {});
+}
+
+setInterval(() => {
+    client.guilds.cache.forEach(async (guild) => {
+        try {
+            const members = await guild.members.fetch({ withPresences: true });
