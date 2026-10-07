@@ -74,10 +74,11 @@ function controllaOrdineGlobale() {
                 let jsonParsed = JSON.parse(data);
                 if (!jsonParsed) return;
                 
+                // CORREZIONE DEFINITIVA: Estraiamo l'ordine reale isolando la prima posizione dell'array [0]
                 let ordineAttuale = null;
                 if (Array.isArray(jsonParsed)) {
                     if (jsonParsed.length === 0) return;
-                    ordineAttuale = jsonParsed[0]; // Estrae il primo ordine reale attivo dall'elenco
+                    ordineAttuale = jsonParsed[0]; 
                 } else {
                     ordineAttuale = jsonParsed;
                 }
@@ -112,11 +113,11 @@ function controllaOrdineGlobale() {
                             `🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}\n\n` +
                             `⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`
                         )
-                        .setImage("https://discordapp.com") // LINK DIRETTO CORAZZATO E SICURO SENZA FILE LOCALI!
+                        .setImage("https://discordapp.com") 
                         .setTimestamp();
 
                     ordiniChannel.send({ embeds: [embedOrdine] })
-                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat con grafica High Command: " + titoloMO))
+                        .then(() => console.log("[RADAR ORDINI] Nuovo ordine inviato in chat: " + titoloMO))
                         .catch(console.error);
                 }
             } catch (err) {
