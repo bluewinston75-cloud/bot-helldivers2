@@ -1,9 +1,16 @@
 const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const fs = require("fs");
+const https = require("https");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildMembers] });
 const utentiInPartita = new Set();
 const timerUscitaUtenti = new Map();
+
+// Variabili di tracciamento radar
+let ultimoPianetaDSS = ""; 
+let idUltimoOrdineGlobale = 0;
+let primoAvvioDSS = true;
+let primoAvvioOrdine = true;
 
 const { DISCORD_TOKEN, DISCORD_CHANNEL_ID, DSS_CHANNEL_ID, ORDINI_CHANNEL_ID, NEWS_CHANNEL_ID, OWNER_USERNAME } = process.env;
 
@@ -18,7 +25,15 @@ client.on("ready", async () => {
         await new REST({ version: "10" }).setToken(DISCORD_TOKEN).put(Routes.applicationCommands(client.user.id), { body: commands });
         console.log("[SUCCESSO] Comandi slash registrati!");
     } catch (e) { console.error(e); }
+    
+    // Esegue i controlli automatici subito all'avvio
+    controllaSpostamentoDSS();
+    controllaOrdineGlobale();
     inviaMessaggiBenvenuto();
+
+    // Attivazione dei radar continui in background
+    setInterval(controllaSpostamentoDSS, 60000); // Traccia la DSS ogni 60 secondi
+    setInterval(controllaOrdineGlobale, 300000); // Traccia i Major Orders ogni 5 minuti
 });
 
 client.on("interactionCreate", async (int) => {
@@ -32,6 +47,122 @@ client.on("interactionCreate", async (int) => {
         await int.reply({ content: "🛑 Rientro alla base registrato!", ephemeral: true });
     }
 });
+
+function controllaOrdineGlobale() {
+    try {
+        const opz = { 
+            hostname: 'api.helldivers2.dev', 
+            path: '/v1/assignments', 
+            method: 'GET', 
+            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot', 'Accept-Language': 'it-IT' } 
+        };
+
+        https.get(opz, (res) => {
+            let data = "";
+            res.on("data", (chunk) => data += chunk);
+            res.on("end", () => {
+                try {
+                    if (res.statusCode !== 200) return;
+                    let jsonParsed = JSON.parse(data);
+                    if (!jsonParsed) return;
+                    
+                    let ordineAttuale = Array.isArray(jsonParsed) ? jsonParsed[0] : jsonParsed;
+                    if (!ordineAttuale || typeof ordineAttuale !== 'object') return;
+
+                    const idOrdine = ordineAttuale.id || ordineAttuale.id32 || 1;
+
+                    if (primoAvvioOrdine || idOrdine !== idUltimoOrdineGlobale) {
+                        primoAvvioOrdine = false;
+                        idUltimoOrdineGlobale = idOrdine;
+
+                        const ordiniCh = client.channels.cache.get(ORDINI_CHANNEL_ID);
+                        if (!ordiniCh) return;
+
+                        const titoloMO = ordineAttuale.title || "NUOVO ORDINE GLOBALE";
+                        const descrizioneMO = ordineAttuale.description || "Istruzioni tattiche in corso di ricezione dal comando centrale.";
+                        const briefingMO = ordineAttuale.briefing || "";
+                        
+                        let ricompensaTesto = "Nessuna medaglia specificata";
+                        if (ordineAttuale.reward && ordineAttuale.reward.amount) {
+                            ricompensaTesto = `🏅 **${ordineAttuale.reward.amount} Medaglie di Schieramento**`;
+                        }
+
+                        const emb = new EmbedBuilder()
+                            .setColor(0xFFD700)
+                            .setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" })
+                            .setTitle(`⚠️ NUOVO ORDINE GLOBALE: ${titoloMO.toUpperCase()}`)
+                            .setDescription(`✉️ **Briefing di Guerra:**\n*${briefingMO}*\n\n🎯 **Obiettivo Strategico:**\n${descrizioneMO}\n\n🎁 **Ricompensa della Vittoria:**\n${ricompensaTesto}`)
+                            .setTimestamp();
+
+                        let files = [];
+                        if (fs.existsSync("./ordine.png")) {
+                            files.push(new AttachmentBuilder("./ordine.png"));
+                            emb.setImage("attachment://ordine.png");
+                        }
+
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#overview");
+                        ordiniCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
+                    }
+                } catch (err) {}
+            });
+        }).on("error", () => {});
+    } catch (e) {}
+}
+
+function controllaSpostamentoDSS() {
+    try {
+        const opz = { 
+            hostname: 'api.helldivers2.dev', 
+            path: '/v1/space-station', 
+            method: 'GET', 
+            headers: { 'User-Agent': 'Mozilla/5.0', 'X-Super-Client': 'HelldiversCommunityBot' } 
+        };
+
+        https.get(opz, (res) => {
+            let data = "";
+            res.on("data", (chunk) => data += chunk);
+            res.on("end", () => {
+                try {
+                    if (res.statusCode !== 200) return;
+                    const dssInfo = JSON.parse(data);
+                    if (!dssInfo) return;
+
+                    let nomePianeta = dssInfo.planet?.name || dssInfo.planetName || "";
+                    let nomeSettore = dssInfo.planet?.sector || dssInfo.sector || "";
+                    let stringaPosizioneCompleta = "✨ SETTORE OPERATIVO TOP SECRET ✨";
+
+                    if (nomePianeta) {
+                        stringaPosizioneCompleta = nomeSettore ? `${nomeSettore.toUpperCase()} — ${nomePianeta.toUpperCase()}` : nomePianeta.toUpperCase();
+                    }
+
+                    if (stringaPosizioneCompleta !== "✨ SETTORE OPERATIVO TOP SECRET ✨" && (primoAvvioDSS || stringaPosizioneCompleta !== ultimoPianetaDSS)) {
+                        primoAvvioDSS = false;
+                        ultimoPianetaDSS = stringaPosizioneCompleta;
+
+                        const dssCh = client.channels.cache.get(DSS_CHANNEL_ID);
+                        if (!dssCh) return;
+
+                        const emb = new EmbedBuilder()
+                            .setColor(0x00AEFF)
+                            .setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" })
+                            .setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!")
+                            .setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`${stringaPosizioneCompleta}\`**\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a sincronizzare le plance di comando e a consultare l'Hellpad.*`)
+                            .setTimestamp();
+
+                        let files = [];
+                        if (fs.existsSync("./logo.png")) {
+                            files.push(new AttachmentBuilder("./logo.png"));
+                            emb.setImage("attachment://logo.png");
+                        }
+
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
+                        dssCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
+                    }
+                } catch (err) {}
+            });
+        }).on("error", () => {});
+    } catch (e) {}
+}
 
 function inviaMessaggiBenvenuto() {
     try {
@@ -47,92 +178,3 @@ function inviaMessaggiBenvenuto() {
                 files.push(new AttachmentBuilder("./logo.png"));
                 emb.setImage("attachment://logo.png");
             }
-            const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#overview");
-            ordiniCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
-        }
-
-        // 2. STANZA STAZIONE SPAZIALE (DSS) (ALLINEATO)
-        setTimeout(() => {
-            const dssCh = client.channels.cache.get(DSS_CHANNEL_ID);
-            if (dssCh) {
-                const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO STRATEGICO SUPER TERRA" }).setTitle("Stazione Spaziale della Democrazia (DSS) Collegata").setDescription("🛰️ **Sincronizzazione Radar Completata!**\n\nLa Stazione Spaziale ha agganciato i sistemi di tracciamento satellitari del server.\n\n📍 **Fronte Attuale:** `REGISTRO OPERATIVO IN AGGIORNAMENTO`\n\n🛸 *Tutte le navi spaziali nell'area sono invitate a consultare i registri orbitali per i voti tattici.*").setTimestamp();
-                let files = [];
-                if (fs.existsSync("./dss.png")) {
-                    files.push(new AttachmentBuilder("./dss.png"));
-                    emb.setThumbnail("attachment://dss.png");
-                }
-                if (fs.existsSync("./logo.png")) {
-                    files.push(new AttachmentBuilder("./logo.png"));
-                    emb.setImage("attachment://logo.png");
-                }
-                const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
-                dssCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
-            }
-        }, 3000);
-
-        // 3. STANZA NEWS DI LOGISTICA (ALLINEATO)
-        setTimeout(() => {
-            const newsCh = client.channels.cache.get(NEWS_CHANNEL_ID);
-            if (newsCh) {
-                const emb = new EmbedBuilder().setColor(0xEE82EE).setAuthor({ name: "📺 MINISTERO DELLA VERITÀ" }).setTitle("📰 CANALE NOTIZIE DI GALASSIA ATTIVO").setDescription(`📢 **Bollettino Informativo:**\n*La plancia dei corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n⚠️ *Si ricorda ai cittadini che consultare fontes non verificate dal Ministero costituisce reato di tradimento.*`).setTimestamp();
-                let files = [];
-                if (fs.existsSync("./news.png")) {
-                    files.push(new AttachmentBuilder("./news.png"));
-                    emb.setImage("attachment://news.png");
-                } else if (fs.existsSync("./logo.png")) {
-                    files.push(new AttachmentBuilder("./logo.png"));
-                    emb.setImage("attachment://logo.png");
-                }
-                const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#news");
-                newsCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
-            }
-        }, 6000);
-    } catch (e) {}
-}
-
-setInterval(() => {
-    client.guilds.cache.forEach(async (g) => {
-        try {
-            const members = await g.members.fetch({ withPresences: true });
-            members.forEach((m) => {
-                if (m.user.bot || m.user.username === OWNER_USERNAME) return;
-                const gestisciUscita = () => {
-                    if (utentiInPartita.has(m.user.id) && !timerUscitaUtenti.has(m.user.id)) {
-                        const tId = setTimeout(() => {
-                            utentiInPartita.delete(m.user.id);
-                            timerUscitaUtenti.delete(m.user.id);
-                            inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0x8B0000, "🚀 FRONTE GALATTICO", "Rientro alla Base Completo", `Il soldato **${m.user.username}** ha completato le operazioni ed è **rientrato sulla sua nave spaziale**.`, m);
-                        }, 30000);
-                        timerUscitaUtenti.set(m.user.id, tId);
-                    }
-                };
-                if (!m.presence?.activities || m.presence.activities.length === 0) return gestisciUscita();
-                if (m.presence.activities.some(act => act.name?.toLowerCase().includes("helldivers"))) {
-                    if (timerUscitaUtenti.has(m.user.id)) {
-                        clearTimeout(timerUscitaUtenti.get(m.user.id));
-                        timerUscitaUtenti.delete(m.user.id);
-                        return;
-                    }
-                    if (!utentiInPartita.has(m.user.id)) {
-                        utentiInPartita.add(m.user.id);
-                        inviaEmbedGiocatori(DISCORD_CHANNEL_ID, 0xFFDF00, "🚀 ORDINE DALLA SUPER TERRA", "Helldiver Schierato in Orbita", `Il soldato **${m.user.username}** si è appena schierato su **HELLDIVERS™ 2**!\n\n**Stato Missione:** Spargere Democrazia ✨`, m);
-                    }
-                } else gestisciUscita();
-            });
-        } catch (e) {}
-    });
-}, 5000);
-
-function inviaEmbedGiocatori(canaleId, colore, autore, titolo, descrizione, member = null) {
-    const channel = client.channels.cache.get(canaleId);
-    if (!channel) return;
-    let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
-    const emb = new EmbedBuilder().setColor(colore).setAuthor({ name: autore }).setTitle(titolo).setDescription(descrizione).setTimestamp();
-    if (member) emb.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
-    if (files.length > 0) emb.setImage("attachment://logo.png");
-    channel.send({ embeds: [emb], files }).catch(() => {});
-}
-
-client.on("error", () => {});
-process.on("unhandledRejection", () => {});
-client.login(DISCORD_TOKEN);
