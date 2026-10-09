@@ -6,7 +6,6 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 const utentiInPartita = new Set();
 const timerUscitaUtenti = new Map();
 
-// Variabili di tracciamento radar
 let ultimoPianetaDSS = ""; 
 let idUltimoOrdineGlobale = 0;
 let primoAvvioDSS = true;
@@ -26,14 +25,12 @@ client.on("ready", async () => {
         console.log("[SUCCESSO] Comandi slash registrati!");
     } catch (e) { console.error(e); }
     
-    // Esegue i controlli automatici subito all'avvio
     controllaSpostamentoDSS();
     controllaOrdineGlobale();
     inviaMessaggiBenvenuto();
 
-    // Attivazione dei radar continui in background
-    setInterval(controllaSpostamentoDSS, 60000); // Traccia la DSS ogni 60 secondi
-    setInterval(controllaOrdineGlobale, 300000); // Traccia i Major Orders ogni 5 minuti
+    setInterval(controllaSpostamentoDSS, 60000); 
+    setInterval(controllaOrdineGlobale, 300000); 
 });
 
 client.on("interactionCreate", async (int) => {
@@ -100,7 +97,7 @@ function controllaOrdineGlobale() {
                             emb.setImage("attachment://ordine.png");
                         }
 
-                        const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#overview");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
                         ordiniCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
                     }
                 } catch (err) {}
@@ -155,7 +152,7 @@ function controllaSpostamentoDSS() {
                             emb.setImage("attachment://logo.png");
                         }
 
-                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
                         dssCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
                     }
                 } catch (err) {}
@@ -166,15 +163,22 @@ function controllaSpostamentoDSS() {
 
 function inviaMessaggiBenvenuto() {
     try {
-        // 1. STANZA ORDINI ALTO COMANDO (ALLINEATO)
-        const ordiniCh = client.channels.cache.get(ORDINI_CHANNEL_ID);
-        if (ordiniCh) {
-            const emb = new EmbedBuilder().setColor(0xFFD700).setAuthor({ name: "💀 ALTO COMANDO DELLA SUPER TERRA" }).setTitle("⚠️ DISPACCIO UFFICIALE: SISTEMA DI TRASMISSIONE ATTIVO").setDescription(`✉️ **Briefing di Guerra:**\n*Il sistema di ricezione dell'Alto Comando è stato potenziato e configurato con successo. Le plance tattiche sono allineate H24.*\n\n🎯 **Obiettivo Strategico:**\nIn attesa di nuove direttive urgenti sul fronte galattico dal Comando Centrale. Tenere i motori delle navi spaziali accesi.\n\n🎁 **Ricompensa della Vittoria:**\n🏅 **50 Medaglie di Schieramento**\n\n⚠️ *Tutti gli Helldiver sono invitati a fare rapporto sul fronte indicato. Per la Democrazia!*`).setTimestamp();
+        const newsCh = client.channels.cache.get(NEWS_CHANNEL_ID);
+        if (newsCh) {
+            const emb = new EmbedBuilder().setColor(0xEE82EE).setAuthor({ name: "📺 MINISTERO DELLA VERITÀ" }).setTitle("📰 CANALE NOTIZIE DI GALASSIA ATTIVO").setDescription(`📢 **Bollettino Informativo:**\n*La plancia dei corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n⚠️ *Si ricorda ai cittadini che consultare fontes non verificate dal Ministero costituisce reato di tradimento.*`).setTimestamp();
             let files = [];
-            if (fs.existsSync("./ordine.png")) {
-                files.push(new AttachmentBuilder("./ordine.png"));
-                emb.setImage("attachment://ordine.png");
-            } else if (fs.existsSync("./logo.png")) {
-                files.push(new AttachmentBuilder("./logo.png"));
-                emb.setImage("attachment://logo.png");
+            if (fs.existsSync("./news.png")) {
+                files.push(new AttachmentBuilder("./news.png"));
+                emb.setImage("attachment://news.png");
             }
+            const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+            newsCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
+        }
+    } catch (e) {}
+}
+
+setInterval(() => {
+    client.guilds.cache.forEach(async (g) => {
+        try {
+            const members = await g.members.fetch({ withPresences: true });
+            members.forEach((m) => {
