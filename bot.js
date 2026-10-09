@@ -11,7 +11,13 @@ let idUltimoOrdineGlobale = 0;
 let primoAvvioDSS = true;
 let primoAvvioOrdine = true;
 
-const { DISCORD_TOKEN, DISCORD_CHANNEL_ID, DSS_CHANNEL_ID, ORDINI_CHANNEL_ID, NEWS_CHANNEL_ID, OWNER_USERNAME } = process.env;
+// Dichiarazione esplicita e sicura delle variabili d'ambiente
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID; 
+const DSS_CHANNEL_ID = process.env.DSS_CHANNEL_ID;       
+const ORDINI_CHANNEL_ID = process.env.ORDINI_CHANNEL_ID; 
+const NEWS_CHANNEL_ID = process.env.NEWS_CHANNEL_ID; 
+const OWNER_USERNAME = process.env.OWNER_USERNAME;       
 
 const commands = [
     new SlashCommandBuilder().setName("inizia").setDescription("🚀 Schierati in orbita (Solo per winstonblue76)"),
@@ -25,12 +31,19 @@ client.on("ready", async () => {
         console.log("[SUCCESSO] Comandi slash registrati!");
     } catch (e) { console.error(e); }
     
-    controllaSpostamentoDSS();
-    controllaOrdineGlobale();
+    // Invia i messaggi fissi di benvenuto subito per dare un segno di vita
     inviaMessaggiBenvenuto();
 
-    setInterval(controllaSpostamentoDSS, 60000); 
-    setInterval(controllaOrdineGlobale, 300000); 
+    // Timer di sicurezza: aspetta 5 secondi prima di attivare i radar automatici esterni
+    setTimeout(() => {
+        console.log("[SISTEMA] Attivazione radar galattici in corso...");
+        controllaSpostamentoDSS();
+        controllaOrdineGlobale();
+
+        // Avvia i cicli continui in background
+        setInterval(controllaSpostamentoDSS, 60000); 
+        setInterval(controllaOrdineGlobale, 300000); 
+    }, 5000);
 });
 
 client.on("interactionCreate", async (int) => {
@@ -165,20 +178,6 @@ function inviaMessaggiBenvenuto() {
     try {
         const newsCh = client.channels.cache.get(NEWS_CHANNEL_ID);
         if (newsCh) {
-            const emb = new EmbedBuilder().setColor(0xEE82EE).setAuthor({ name: "📺 MINISTERO DELLA VERITÀ" }).setTitle("📰 CANALE NOTIZIE DI GALASSIA ATTIVO").setDescription(`📢 **Bollettino Informativo:**\n*La plancia dei corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n⚠️ *Si ricorda ai cittadini che consultare fontes non verificate dal Ministero costituisce reato di tradimento.*`).setTimestamp();
-            let files = [];
-            if (fs.existsSync("./news.png")) {
-                files.push(new AttachmentBuilder("./news.png"));
-                emb.setImage("attachment://news.png");
-            }
-            const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
-            newsCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
-        }
-    } catch (e) {}
-}
-
-setInterval(() => {
-    client.guilds.cache.forEach(async (g) => {
-        try {
-            const members = await g.members.fetch({ withPresences: true });
-            members.forEach((m) => {
+            const emb = new EmbedBuilder().setColor(0xEE82EE).setAuthor({ name: "📺 MINISTERO DELLA VERITÀ" }).setTitle("📰 CANALE NOTIZIE DI GALASSIA ATTIVO").setDescription(`📢 **Bollettino Informativo:**\n*La plancia dei opportunisticamente corrispondenti di guerra della Super Terra è stata sincronizzata con la rete internet planetaria.*\n\n🛰️ **Fronte di Monitoraggio:**\nIl bot è in ascolto per intercettare i comunicati di recensione, le manutenzioni logistiche e i briefing strategici del Generale Bresch.\n\n⚠️ *Si ricorda ai cittadini che consultare fontes non verificate dal Ministero costituisce reato di tradimento.*`).setTimestamp();
+            let files = fs.existsSync("./news.png") ? [new AttachmentBuilder("./news.png")] : [];
+            if (files.length > 0) emb.setImage("attachment://news.png");
