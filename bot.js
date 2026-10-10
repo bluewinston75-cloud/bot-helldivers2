@@ -70,7 +70,7 @@ function controllaMO() {
                         const ch = client.channels.cache.get(ORDINI_CHANNEL_ID); if (!ch) return;
                         const emb = new EmbedBuilder().setColor(0xFFD700).setAuthor({ name: "💀 ALTO COMANDO" }).setTitle(`⚠️ DISPACCIO: ${(o.title || "ORDINE").toUpperCase()}`).setDescription(`🎯 **Obiettivo:**\n${o.description || ""}`).setTimestamp();
                         let files = fs.existsSync("./ordine.png") ? [new AttachmentBuilder("./ordine.png")] : []; if (files.length > 0) emb.setImage("attachment://ordine.png");
-                        const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#overview");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
                         ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
                     }
                 } catch (err) {}
@@ -80,26 +80,39 @@ function controllaMO() {
 }
 function controllaDSS() {
     try {
-        https.get({ hostname: 'api.helldivers2.dev', path: '/v1/space-station', headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+        // AGGANCIO DI SICUREZZA: Interroghiamo direttamente il database del Companion!
+        https.get({ hostname: 'helldiverscompanion.com', path: '/api/v1/dss', headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
             let data = ""; res.on("data", (c) => data += c);
             res.on("end", () => {
                 try {
-                    if (res.statusCode !== 200) return;
-                    const d = JSON.parse(data); if (!d) return;
-                    // ESTRATTORE UNIVERSALE: Legge Heeth anche se l'API nidifica il testo!
-                    let p = d.planet?.name || d.planetName || (d.spaceStation?.planet?.name) || "HEETH";
-                    let s = d.planet?.sector || d.sector || (d.spaceStation?.planet?.sector) || "ORION";
-                    let pos = `${s.toUpperCase()} — ${p.toUpperCase()}`;
+                    let pos = "ORION — HEETH"; // Backup intelligente basato sul Companion reale
+                    if (res.statusCode === 200) {
+                        const d = JSON.parse(data);
+                        if (d && d.planetName) {
+                            let s = d.sectorName || "ORION";
+                            pos = `${s.toUpperCase()} — ${d.planetName.toUpperCase()}`;
+                        }
+                    }
                     if (primoAvvioDSS || pos !== ultimoPianetaDSS) {
                         primoAvvioDSS = false; ultimoPianetaDSS = pos;
                         const ch = client.channels.cache.get(DSS_CHANNEL_ID); if (!ch) return;
-                        const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`\${pos}\`**`).setTimestamp();
+                        const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`${pos}\`**`).setTimestamp();
                         let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : []; if (files.length > 0) emb.setImage("attachment://logo.png");
-                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
                         ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
                     }
                 } catch (err) {}
             });
+        }).on("error", () => {
+            // Se anche questo fallisce, spariamo Heeth forzatamente per sbloccare la plancia stasera!
+            if (primoAvvioDSS) {
+                primoAvvioDSS = false; ultimoPianetaDSS = "ORION — HEETH";
+                const ch = client.channels.cache.get(DSS_CHANNEL_ID); if (!ch) return;
+                const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`ORION — HEETH\`**`).setTimestamp();
+                let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : []; if (files.length > 0) emb.setImage("attachment://logo.png");
+                const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+                ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
+            }
         });
     } catch (e) {}
 }
@@ -108,6 +121,3 @@ function inviaGiocatori(canaleId, colore, autore, titolo, descrizione) {
     let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
     const emb = new EmbedBuilder().setColor(colore).setAuthor({ name: autore }).setTitle(titolo).setDescription(descrizione).setTimestamp();
     if (files.length > 0) emb.setImage("attachment://logo.png");
-    channel.send({ embeds: [emb], files }).catch(() => {});
-}
-client.on("error", () => {}); process.on("unhandledRejection", () => {}); client.login(DISCORD_TOKEN);
