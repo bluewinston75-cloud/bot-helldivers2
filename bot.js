@@ -34,7 +34,7 @@ function inviaFissi() {
             const emb = new EmbedBuilder().setColor(0xFFD700).setAuthor({ name: "💀 ALTO COMANDO" }).setTitle("⚠️ DISPACCIO UFFICIALE: SISTEMA ATTIVO").setDescription(`✉️ **Briefing:**\n*Il sistema dell'Alto Comando è configurato H24.*\n\n🎯 **Obiettivo:**\nIn attesa di nuove direttive urgenti dal Comando Centrale.\n\n🏅 **Ricompensa:** 🏅 **50 Medaglie**`).setTimestamp();
             let files = fs.existsSync("./ordine.png") ? [new AttachmentBuilder("./ordine.png")] : [];
             if (files.length > 0) emb.setImage("attachment://ordine.png");
-            const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+            const btn = new ButtonBuilder().setLabel("💀 HDC/major_orders").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#overview");
             oCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
         }
         const dCh = client.channels.cache.get(DSS_CHANNEL_ID);
@@ -42,7 +42,7 @@ function inviaFissi() {
             const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("Stazione Spaziale Collegata").setDescription("🛰️ **Sincronizzazione Radar Completata!**\n\n📍 **Fronte Attuale:** `REGISTRO IN AGGIORNAMENTO`").setTimestamp();
             let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
             if (files.length > 0) emb.setImage("attachment://logo.png");
-            const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+            const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
             dCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
         }
         const nCh = client.channels.cache.get(NEWS_CHANNEL_ID);
@@ -50,7 +50,7 @@ function inviaFissi() {
             const emb = new EmbedBuilder().setColor(0xEE82EE).setAuthor({ name: "📺 MINISTERO" }).setTitle("📰 CANALE NOTIZIE ATTIVO").setDescription(`📢 **Bollettino:**\n*La plancia è sincronizzata con la rete internet planetaria.*\n\n🛰️ **Fronte:**\nIn ascolto dei comunicati del Generale Bresch.`).setTimestamp();
             let files = fs.existsSync("./news.png") ? [new AttachmentBuilder("./news.png")] : [];
             if (files.length > 0) emb.setImage("attachment://news.png");
-            const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+            const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#news");
             nCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
         }
     } catch (e) {}
@@ -71,7 +71,7 @@ function controllaDSS() {
                         const ch = client.channels.cache.get(DSS_CHANNEL_ID); if (!ch) return;
                         const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`\${pos}\`**`).setTimestamp();
                         let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : []; if (files.length > 0) emb.setImage("attachment://logo.png");
-                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
                         ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
                     }
                 } catch (err) {}
