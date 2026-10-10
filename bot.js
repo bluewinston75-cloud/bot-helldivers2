@@ -1,7 +1,8 @@
 const { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder, REST, Routes, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
-const fs = require("fs");
+const fs = require("fs"), https = require("https");
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildMembers] });
 const utentiInPartita = new Set(), timerUscitaUtenti = new Map();
+let ultimoPianetaDSS = "", idUltimoOrdineGlobale = 0, primoAvvioDSS = true, primoAvvioOrdine = true;
 const { DISCORD_TOKEN, DISCORD_CHANNEL_ID, DSS_CHANNEL_ID, ORDINI_CHANNEL_ID, NEWS_CHANNEL_ID, OWNER_USERNAME } = process.env;
 const commands = [
     new SlashCommandBuilder().setName("inizia").setDescription("🚀 Inizia"),
@@ -10,7 +11,10 @@ const commands = [
 client.on("ready", async () => {
     console.log("Bot ONLINE! Autenticato come: " + client.user.tag);
     try { await new REST({ version: "10" }).setToken(DISCORD_TOKEN).put(Routes.applicationCommands(client.user.id), { body: commands }); } catch (e) {}
-    setTimeout(() => { inviaPlance(); }, 5000);
+    setTimeout(() => {
+        inviaFissi(); controllaDSS();
+        setInterval(controllaDSS, 60000); // Controlla i salti reali ogni 60 secondi!
+    }, 5000);
 });
 client.on("interactionCreate", async (i) => {
     if (!i.isChatInputCommand() || i.user.username !== OWNER_USERNAME) return;
@@ -23,7 +27,7 @@ client.on("interactionCreate", async (i) => {
         await i.reply({ content: "🛑 Rientro alla base registrato!", ephemeral: true });
     }
 });
-function inviaPlance() {
+function inviaFissi() {
     try {
         const oCh = client.channels.cache.get(ORDINI_CHANNEL_ID);
         if (oCh) {
@@ -35,17 +39,11 @@ function inviaPlance() {
         }
         const dCh = client.channels.cache.get(DSS_CHANNEL_ID);
         if (dCh) {
-            const embFisso = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("Stazione Spaziale Collegata").setDescription("🛰️ **Sincronizzazione Radar Completata!**\n\n📍 **Fronte Attuale:** `REGISTRO IN AGGIORNAMENTO`").setTimestamp();
-            let filesFisso = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
-            if (filesFisso.length > 0) embFisso.setImage("attachment://logo.png");
-            const btnFisso = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
-            dCh.send({ embeds: [embFisso], files: filesFisso, components: [new ActionRowBuilder().addComponents(btnFisso)] }).catch(() => {});
-
-            // FORZATURA AUTOMATICA DI HEETH RISOLUTIVA
-            setTimeout(() => {
-                const embSalto = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`ORION — HEETH\`**`).setTimestamp();
-                dCh.send({ embeds: [embSalto], components: [new ActionRowBuilder().addComponents(btnFisso)] }).catch(() => {});
-            }, 2000);
+            const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("Stazione Spaziale Collegata").setDescription("🛰️ **Sincronizzazione Radar Completata!**\n\n📍 **Fronte Attuale:** `REGISTRO IN AGGIORNAMENTO`").setTimestamp();
+            let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : [];
+            if (files.length > 0) emb.setImage("attachment://logo.png");
+            const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+            dCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
         }
         const nCh = client.channels.cache.get(NEWS_CHANNEL_ID);
         if (nCh) {
@@ -55,6 +53,30 @@ function inviaPlance() {
             const btn = new ButtonBuilder().setLabel("💀 HDC/news_feed").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
             nCh.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
         }
+    } catch (e) {}
+}
+function controllaDSS() {
+    try {
+        https.get({ hostname: 'api.helldivers2.dev', path: '/v1/space-station', headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+            let data = ""; res.on("data", (c) => data += c);
+            res.on("end", () => {
+                try {
+                    if (res.statusCode !== 200) return;
+                    const d = JSON.parse(data); if (!d) return;
+                    let p = d.planet?.name || d.planetName || d.spaceStation?.planet?.name || "HEETH";
+                    let s = d.planet?.sector || d.sector || d.spaceStation?.planet?.sector || "ORION";
+                    let pos = `${s.toUpperCase()} — ${p.toUpperCase()}`;
+                    if (primoAvvioDSS || pos !== ultimoPianetaDSS) {
+                        primoAvvioDSS = false; ultimoPianetaDSS = pos;
+                        const ch = client.channels.cache.get(DSS_CHANNEL_ID); if (!ch) return;
+                        const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`\${pos}\`**`).setTimestamp();
+                        let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : []; if (files.length > 0) emb.setImage("attachment://logo.png");
+                        const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com");
+                        ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
+                    }
+                } catch (err) {}
+            });
+        });
     } catch (e) {}
 }
 function inviaGiocatori(canaleId, colore, autore, titolo, descrizione) {
