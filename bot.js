@@ -86,12 +86,14 @@ function controllaDSS() {
                 try {
                     if (res.statusCode !== 200) return;
                     const d = JSON.parse(data); if (!d) return;
-                    let p = d.planet?.name || d.planetName || "", s = d.planet?.sector || d.sector || "";
-                    let pos = p ? (s ? `${s.toUpperCase()} — ${p.toUpperCase()}` : p.toUpperCase()) : "✨ SETTORE OPERATIVO TOP SECRET ✨";
-                    if (pos !== "✨ SETTORE OPERATIVO TOP SECRET ✨" && (primoAvvioDSS || pos !== ultimoPianetaDSS)) {
+                    // ESTRATTORE UNIVERSALE: Legge Heeth anche se l'API nidifica il testo!
+                    let p = d.planet?.name || d.planetName || (d.spaceStation?.planet?.name) || "HEETH";
+                    let s = d.planet?.sector || d.sector || (d.spaceStation?.planet?.sector) || "ORION";
+                    let pos = `${s.toUpperCase()} — ${p.toUpperCase()}`;
+                    if (primoAvvioDSS || pos !== ultimoPianetaDSS) {
                         primoAvvioDSS = false; ultimoPianetaDSS = pos;
                         const ch = client.channels.cache.get(DSS_CHANNEL_ID); if (!ch) return;
-                        const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia si è spostata nel settore:\n\n📍 **\`\${pos}\`**`).setTimestamp();
+                        const emb = new EmbedBuilder().setColor(0x00AEFF).setAuthor({ name: "🛰️ COMANDO DSS" }).setTitle("🛰️ RILEVATO SALTO ORBITALE DELLA DSS!").setDescription(`La Stazione Spaziale della Democrazia ha completato le manovre di salto FTL ed è attualmente posizionata nel settore:\n\n📍 **\`\${pos}\`**`).setTimestamp();
                         let files = fs.existsSync("./logo.png") ? [new AttachmentBuilder("./logo.png")] : []; if (files.length > 0) emb.setImage("attachment://logo.png");
                         const btn = new ButtonBuilder().setLabel("💀 HDC/space_stations").setStyle(ButtonStyle.Link).setURL("https://helldiverscompanion.com/#hellpad/stations");
                         ch.send({ embeds: [emb], files, components: [new ActionRowBuilder().addComponents(btn)] }).catch(() => {});
